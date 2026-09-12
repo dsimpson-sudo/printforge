@@ -1,0 +1,1514 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0a1520">
+<title>PrintForge</title>
+<style>
+:root {
+  --bg:      #0a1520;
+  --surface: #132030;
+  --card:    #1a2d40;
+  --border:  rgba(255,255,255,0.1);
+  --cyan:    #00D4FF;
+  --green:   #2ECC71;
+  --amber:   #FFB347;
+  --pink:    #FF6EC7;
+  --red:     #EF4444;
+  --purple:  #9333ea;
+  --muted:   rgba(240,244,248,0.45);
+  --text:    #F0F4F8;
+  --kb:      #FFF8F0;
+  --kt:      #2d1a00;
+  --km:      #b06020;
+  --kbr:     #FFB347;
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+* { box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent; }
+html,body { height:100%; background:var(--bg); overscroll-behavior:none; }
+body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; color:var(--text); overflow:hidden; }
+.app { display:flex; flex-direction:column; height:100vh; height:100dvh; }
+
+/* ── Header ── */
+.header { display:flex; align-items:center; justify-content:space-between; padding:12px 16px; padding-top:max(12px,env(safe-area-inset-top)); background:var(--surface); border-bottom:1px solid var(--border); flex-shrink:0; }
+.header-logo { display:flex; align-items:center; gap:8px; }
+.header-logo .icon { font-size:22px; }
+.header-title { font-size:17px; font-weight:800; color:var(--cyan); letter-spacing:-0.02em; }
+.header-sub { font-size:9px; color:var(--muted); text-transform:uppercase; letter-spacing:.08em; }
+.header-right { display:flex; align-items:center; gap:8px; }
+.mode-label { font-size:10px; color:var(--muted); font-weight:600; }
+.toggle { width:44px; height:24px; border-radius:12px; border:none; cursor:pointer; position:relative; transition:background .25s; }
+.toggle .knob { position:absolute; top:3px; width:18px; height:18px; border-radius:50%; background:white; transition:left .25s; box-shadow:0 1px 4px rgba(0,0,0,.3); }
+.save-pill { font-size:10px; font-weight:700; padding:3px 8px; border-radius:20px; }
+
+/* ── Nav bar (bottom) ── */
+.navbar { display:flex; background:var(--surface); border-top:1px solid var(--border); padding-bottom:var(--safe-bottom); flex-shrink:0; overflow-x:auto; -webkit-overflow-scrolling:touch; scrollbar-width:none; }
+.navbar::-webkit-scrollbar { display:none; }
+.nav-btn { flex:1; min-width:56px; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:8px 4px; border:none; background:transparent; cursor:pointer; position:relative; }
+.nav-btn .nav-icon { font-size:18px; margin-bottom:2px; }
+.nav-btn .nav-label { font-size:9px; font-weight:600; color:var(--muted); white-space:nowrap; }
+.nav-btn.active .nav-label { color:var(--cyan); }
+.nav-btn.active::after { content:''; position:absolute; top:0; left:20%; right:20%; height:2px; background:var(--cyan); border-radius:0 0 2px 2px; }
+
+/* ── Scroll area ── */
+.scroll { flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; padding:16px; }
+.scroll.kid-mode { background:var(--kb); color:var(--kt); }
+
+/* ── Cards ── */
+.card { background:var(--card); border:1px solid var(--border); border-radius:14px; padding:16px; margin-bottom:12px; }
+.card.accent-cyan  { border-color:rgba(0,212,255,.3); background:rgba(0,212,255,.04); }
+.card.accent-amber { border-color:rgba(255,179,71,.3); background:rgba(255,179,71,.05); }
+.card.accent-green { border-color:rgba(46,204,113,.3); background:rgba(46,204,113,.04); }
+.card-kid { background:white; border:2px solid var(--kbr); border-radius:18px; padding:16px; margin-bottom:12px; }
+
+/* ── Stat grid ── */
+.stat-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:14px; }
+.stat-grid.three { grid-template-columns:1fr 1fr 1fr; }
+.stat-box { background:var(--card); border-radius:12px; padding:12px; }
+.stat-val { font-size:20px; font-weight:800; }
+.stat-label { font-size:10px; color:var(--muted); margin-top:3px; }
+.stat-box-kid { border-radius:12px; padding:12px; text-align:center; border:2px solid; }
+
+/* ── Section header ── */
+.section-head { display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; }
+.section-title { font-size:18px; font-weight:800; }
+.section-sub { font-size:12px; color:var(--muted); margin-top:2px; }
+
+/* ── Buttons ── */
+.btn { border:none; border-radius:10px; padding:10px 16px; font-size:13px; font-weight:700; cursor:pointer; display:inline-flex; align-items:center; gap:6px; font-family:inherit; }
+.btn-primary { background:var(--cyan); color:#0a1520; }
+.btn-success { background:var(--green); color:#0a1520; }
+.btn-ghost   { background:rgba(255,255,255,.08); color:var(--text); border:1px solid var(--border); }
+.btn-danger  { background:rgba(239,68,68,.15); color:var(--red); border:1px solid rgba(239,68,68,.3); }
+.btn-amber   { background:rgba(255,179,71,.15); color:var(--amber); border:1px solid var(--amber); }
+.btn-full    { width:100%; justify-content:center; padding:13px; font-size:15px; }
+.btn-kid     { background:linear-gradient(135deg,#FFB347,#FF6EC7); color:white; border:none; border-radius:14px; padding:14px; font-size:16px; font-weight:800; cursor:pointer; width:100%; font-family:inherit; }
+.btn-kid:disabled { background:#f0f0f0; color:#999; }
+
+/* ── Form fields ── */
+.field { margin-bottom:12px; }
+.field-label { font-size:11px; color:var(--muted); font-weight:700; letter-spacing:.04em; display:block; margin-bottom:5px; }
+.field-label.kid { color:var(--km); }
+input, select, textarea { font-family:inherit; }
+.input { background:rgba(255,255,255,.08); border:1px solid var(--border); color:var(--text); border-radius:9px; padding:11px 13px; width:100%; font-size:15px; outline:none; -webkit-appearance:none; }
+.input:focus { border-color:var(--cyan); }
+.input::placeholder { color:rgba(240,244,248,.3); }
+.input-kid { background:white; border:2px solid var(--kbr); color:var(--kt); border-radius:10px; padding:11px 13px; width:100%; font-size:15px; outline:none; -webkit-appearance:none; }
+select.input option, select.input-kid option { background:#1a2d40; color:var(--text); }
+
+/* ── Table ── */
+.tbl { width:100%; border-collapse:collapse; font-size:13px; }
+.tbl th { padding:8px 10px; text-align:left; font-size:10px; font-weight:700; color:var(--muted); background:rgba(0,212,255,.06); text-transform:uppercase; letter-spacing:.06em; }
+.tbl td { padding:10px 10px; border-bottom:1px solid var(--border); vertical-align:middle; }
+.tbl-wrap { overflow-x:auto; -webkit-overflow-scrolling:touch; border-radius:12px; border:1px solid var(--border); }
+
+/* ── Badge ── */
+.badge { display:inline-block; border-radius:20px; padding:2px 9px; font-size:10px; font-weight:700; }
+
+/* ── Modal overlay ── */
+.modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,.75); z-index:500; display:flex; align-items:flex-end; justify-content:center; }
+.modal-box { background:var(--surface); border-radius:20px 20px 0 0; padding:20px; padding-bottom:calc(20px + var(--safe-bottom)); width:100%; max-height:90vh; overflow-y:auto; }
+.modal-box.centered { border-radius:18px; margin:16px; max-height:88vh; align-self:center; }
+.modal-head { display:flex; justify-content:space-between; align-items:center; margin-bottom:18px; }
+.modal-title { font-size:17px; font-weight:800; color:var(--cyan); }
+.modal-close { background:none; border:none; color:var(--muted); font-size:22px; cursor:pointer; line-height:1; padding:0; }
+
+/* ── Error ── */
+.err { background:rgba(239,68,68,.12); border:1px solid rgba(239,68,68,.3); border-radius:9px; padding:10px 13px; color:var(--red); font-size:13px; font-weight:600; margin-top:10px; }
+
+/* ── Info box ── */
+.info { background:rgba(0,212,255,.07); border-left:3px solid var(--cyan); border-radius:0 9px 9px 0; padding:10px 13px; font-size:12px; color:rgba(240,244,248,.75); margin-top:10px; line-height:1.5; }
+.info-amber { background:rgba(255,179,71,.08); border-left:3px solid var(--amber); border-radius:0 9px 9px 0; padding:10px 13px; font-size:12px; color:var(--amber); margin-top:10px; line-height:1.5; }
+
+/* ── Progress bar ── */
+.prog-wrap { height:10px; border-radius:5px; background:rgba(255,255,255,.08); overflow:hidden; }
+.prog-fill { height:100%; border-radius:5px; transition:width .4s; }
+
+/* ── Empty state ── */
+.empty { text-align:center; padding:40px 20px; color:var(--muted); }
+.empty .empty-icon { font-size:36px; margin-bottom:10px; }
+.empty .empty-msg { font-size:14px; line-height:1.5; }
+
+/* ── PIN pad ── */
+.pin-pad { display:grid; grid-template-columns:repeat(3,72px); gap:12px; margin:0 auto; width:fit-content; }
+.pin-key { width:72px; height:72px; border-radius:50%; border:2px solid var(--kbr); background:white; font-size:26px; font-weight:800; color:var(--kt); cursor:pointer; font-family:inherit; }
+.pin-key.del { font-size:20px; background:rgba(255,179,71,.15); }
+.pin-dots { display:flex; gap:16px; justify-content:center; margin:16px 0; }
+.pin-dot { width:18px; height:18px; border-radius:50%; border:2px solid var(--kbr); background:rgba(255,179,71,.2); transition:background .15s; }
+.pin-dot.filled { background:var(--amber); }
+
+/* ── Cost breakdown mini ── */
+.cost-row { display:flex; justify-content:space-between; padding:4px 0; border-bottom:1px solid var(--border); font-size:13px; }
+.cost-row:last-child { border:none; }
+.cost-total { display:flex; justify-content:space-between; padding:10px 0 0; font-size:16px; font-weight:800; color:var(--amber); }
+
+/* ── Allocation card ── */
+.alloc-card { background:rgba(255,255,255,.06); border:1px solid rgba(0,212,255,.2); border-radius:12px; padding:14px; margin-bottom:10px; }
+.alloc-card.closed { opacity:.65; border-color:var(--border); background:rgba(255,255,255,.03); }
+.alloc-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin:10px 0; }
+.alloc-grid.four { grid-template-columns:repeat(4,1fr); }
+.alloc-cell { background:rgba(255,255,255,.05); border-radius:8px; padding:8px; text-align:center; }
+.alloc-cell .val { font-size:18px; font-weight:800; }
+.alloc-cell .lbl { font-size:9px; color:var(--muted); margin-top:2px; }
+
+/* ── Sale confirm box ── */
+.sale-box { background:var(--kb); border:2px solid var(--kbr); border-radius:14px; padding:14px; }
+.qty-row { display:flex; gap:12px; align-items:center; justify-content:center; margin:12px 0; }
+.qty-btn { width:44px; height:44px; border-radius:50%; border:2px solid var(--kbr); background:white; font-size:22px; font-weight:800; color:var(--kt); cursor:pointer; font-family:inherit; }
+.qty-val { font-size:36px; font-weight:800; color:var(--purple); min-width:60px; text-align:center; }
+.profit-preview { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; background:#f0fdf4; border:1px solid #86efac; border-radius:10px; padding:10px; margin:10px 0; }
+.profit-cell { text-align:center; }
+.profit-cell .pv { font-size:15px; font-weight:800; }
+.profit-cell .pl { font-size:9px; color:var(--km); }
+
+/* ── Level bar ── */
+.level-bar { background:white; border:2px solid var(--kbr); border-radius:14px; padding:14px; margin-bottom:14px; }
+.level-header { display:flex; justify-content:space-between; font-size:13px; font-weight:700; color:var(--kt); margin-bottom:8px; }
+.level-prog { height:14px; border-radius:7px; background:#FFE5C0; overflow:hidden; }
+.level-fill { height:100%; border-radius:7px; background:linear-gradient(90deg,#FFB347,#FF6EC7); transition:width .5s; }
+
+/* ── Settings ── */
+.settings-section { margin-bottom:18px; }
+.settings-title { font-size:13px; font-weight:700; margin-bottom:10px; }
+.settings-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+.settings-hint { font-size:10px; color:var(--muted); margin-top:3px; line-height:1.4; }
+
+/* ── Profit breakdown ── */
+.profit-strip { background:#f0fdf4; border:1px solid #86efac; border-radius:10px; padding:10px; margin-bottom:10px; }
+.profit-strip-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:6px; text-align:center; }
+
+/* ── Kid card ── */
+.kid-profile-card { background:white; border:3px solid var(--kbr); border-radius:18px; padding:18px; margin-bottom:12px; text-align:center; cursor:pointer; }
+.kid-profile-card.selected { background:var(--amber); border-color:#e09a30; }
+
+/* ── Responsive ── */
+@media (min-width:600px) {
+  .stat-grid { grid-template-columns:repeat(3,1fr); }
+  .modal-overlay { align-items:center; }
+  .modal-box { border-radius:18px; margin:16px; max-width:480px; }
+}
+</style>
+</head>
+<body>
+<div class="app" id="app">
+  <div id="header-slot"></div>
+  <div class="scroll" id="main-scroll"></div>
+  <div id="navbar-slot"></div>
+  <div id="modal-slot"></div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════════════════
+// INDEXEDDB — permanent local storage, never cleared by browser
+// ═══════════════════════════════════════════════════════════════════════════
+const DB_NAME = 'PrintForge', DB_VER = 1;
+const STORES = ['stock','products','orders','kids','allocations','kid_sales','inventory'];
+let db = null;
+
+function openDB() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(DB_NAME, DB_VER);
+    req.onupgradeneeded = e => {
+      const d = e.target.result;
+      STORES.forEach(s => { if (!d.objectStoreNames.contains(s)) d.createObjectStore(s, {keyPath:'id'}); });
+    };
+    req.onsuccess = e => { db = e.target.result; resolve(db); };
+    req.onerror   = () => reject(req.error);
+  });
+}
+function dbGetAll(store) {
+  return new Promise((res, rej) => {
+    const tx = db.transaction(store, 'readonly');
+    const req = tx.objectStore(store).getAll();
+    req.onsuccess = () => res(req.result);
+    req.onerror   = () => rej(req.error);
+  });
+}
+function dbPut(store, row) {
+  return new Promise((res, rej) => {
+    const tx = db.transaction(store, 'readwrite');
+    const req = tx.objectStore(store).put(row);
+    req.onsuccess = () => res();
+    req.onerror   = () => rej(req.error);
+  });
+}
+function dbDelete(store, id) {
+  return new Promise((res, rej) => {
+    const tx = db.transaction(store, 'readwrite');
+    const req = tx.objectStore(store).delete(id);
+    req.onsuccess = () => res();
+    req.onerror   = () => rej(req.error);
+  });
+}
+
+// Settings stored in localStorage (just a JSON blob)
+function getSettings() {
+  try { return JSON.parse(localStorage.getItem('pf_settings') || '{}'); } catch { return {}; }
+}
+function saveSettings(s) { localStorage.setItem('pf_settings', JSON.stringify(s)); }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════════════════════════
+const state = {
+  tab: 'dashboard', mode: 'biz', kidId: null,
+  stock:[], products:[], orders:[], kids:[], allocations:[], kidSalesLog:[], inventory:[],
+  settings: getSettings(),
+  modal: null, saveMsg: ''
+};
+
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2); }
+function R(n)   { return 'R ' + Number(n||0).toFixed(2); }
+function Rpct(n){ return Number(n||0).toFixed(1) + '%'; }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// COST ENGINE
+// ═══════════════════════════════════════════════════════════════════════════
+function calcCost(p) {
+  if (!p) return { filCost:0, elecCost:0, deprCost:0, labourCost:0, consumCost:0, overheadCost:0, total:0 };
+  const s = state.settings;
+  const fil = state.stock.find(f => f.id === p.filamentId);
+  const waste = 1 + (Number(s.wastePct||12)/100);
+  const filCost = fil ? (fil.costPerKg/1000) * Number(p.filamentG||0) * waste : 0;
+  const kw = Number(s.printerWatts||150)/1000;
+  const elecCost = kw * Number(p.printHrs||0) * Number(s.elecRate||3.0);
+  const deprCost = Number(s.printerLifetimeHrs||4000)>0
+    ? (Number(s.printerCost||8000)/Number(s.printerLifetimeHrs||4000)) * Number(p.printHrs||0) : 0;
+  const labourCost = Number(s.labourRate||80) * (Number(p.labourMins||15)/60);
+  const consumCost = Number(p.consumables||3);
+  const ipm = Number(s.itemsPerMonth||50);
+  const overheadCost = ipm>0 ? Number(s.monthlyOverheads||0)/ipm : 0;
+  const total = filCost+elecCost+deprCost+labourCost+consumCost+overheadCost;
+  return {filCost,elecCost,deprCost,labourCost,consumCost,overheadCost,total};
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// RENDER ENGINE
+// ═══════════════════════════════════════════════════════════════════════════
+function render() {
+  const isKid = state.mode === 'kid';
+  const kid   = state.kids.find(k => k.id === state.kidId) || null;
+
+  // Header
+  document.getElementById('header-slot').innerHTML = renderHeader(isKid, kid);
+  // Scroll area
+  const scroll = document.getElementById('main-scroll');
+  scroll.className = 'scroll' + (isKid ? ' kid-mode' : '');
+  scroll.innerHTML = renderMain(isKid, kid);
+  // Navbar
+  document.getElementById('navbar-slot').innerHTML = renderNavbar(isKid);
+  // Modal
+  document.getElementById('modal-slot').innerHTML = state.modal ? renderModal() : '';
+
+  attachEvents();
+}
+
+function showSave(msg='✅ Saved', dur=2000) {
+  state.saveMsg = msg;
+  renderHeader_inline();
+  setTimeout(() => { state.saveMsg = ''; renderHeader_inline(); }, dur);
+}
+
+function renderHeader_inline() {
+  document.getElementById('header-slot').innerHTML = renderHeader(state.mode==='kid', state.kids.find(k=>k.id===state.kidId)||null);
+  attachHeaderEvents();
+}
+
+function renderHeader(isKid, kid) {
+  const title = isKid ? (kid ? kid.name + "'s Store" : 'Market Boss!') : 'PrintForge';
+  const sub   = isKid ? 'Young Entrepreneur' : '3D Print Business · ZA';
+  const icon  = isKid ? '🌟' : '🖨️';
+  const bgCol = isKid ? 'white' : 'var(--surface)';
+  const tc    = isKid ? 'var(--kt)' : 'var(--cyan)';
+  const sc    = isKid ? 'var(--km)' : 'var(--muted)';
+  const toggleBg = isKid ? 'var(--amber)' : 'var(--cyan)';
+  const knobLeft = isKid ? '22px' : '3px';
+  const saveHtml = state.saveMsg
+    ? `<span class="save-pill" style="background:rgba(46,204,113,.15);color:var(--green)">${state.saveMsg}</span>` : '';
+  return `<div class="header" style="background:${bgCol};border-bottom-color:${isKid?'var(--kbr)':'var(--border)'}">
+    <div class="header-logo">
+      <span class="icon">${icon}</span>
+      <div>
+        <div class="header-title" style="color:${tc}">${title}</div>
+        <div class="header-sub" style="color:${sc}">${sub}</div>
+      </div>
+    </div>
+    <div class="header-right">
+      ${saveHtml}
+      <span class="mode-label">${isKid?'Kid':'Biz'}</span>
+      <button class="toggle" id="mode-toggle" style="background:${toggleBg}">
+        <span class="knob" style="left:${knobLeft}"></span>
+      </button>
+    </div>
+  </div>`;
+}
+
+const BIZ_TABS = [
+  {id:'dashboard', icon:'📊', label:'Home'},
+  {id:'settings',  icon:'⚙️', label:'Setup'},
+  {id:'stock',     icon:'🎞️', label:'Filament'},
+  {id:'inventory', icon:'🏭', label:'Stock'},
+  {id:'products',  icon:'📦', label:'Products'},
+  {id:'pricing',   icon:'🧮', label:'Pricing'},
+  {id:'orders',    icon:'🛒', label:'Orders'},
+  {id:'kids',      icon:'⭐', label:'Kids'},
+];
+const KID_TABS = [
+  {id:'kids',     icon:'👤', label:'Profile'},
+  {id:'kidstock', icon:'📦', label:'My Stock'},
+  {id:'kidsales', icon:'💰', label:'My Sales'},
+];
+
+function renderNavbar(isKid) {
+  const tabs = isKid ? KID_TABS : BIZ_TABS;
+  return `<nav class="navbar">${tabs.map(t =>
+    `<button class="nav-btn${state.tab===t.id?' active':''}" data-tab="${t.id}">
+      <span class="nav-icon">${t.icon}</span>
+      <span class="nav-label">${t.label}</span>
+    </button>`
+  ).join('')}</nav>`;
+}
+
+function renderMain(isKid, kid) {
+  if (!isKid) {
+    if (state.tab==='dashboard') return renderDashboard();
+    if (state.tab==='settings')  return renderSettings();
+    if (state.tab==='stock')     return renderStock();
+    if (state.tab==='inventory') return renderInventory();
+    if (state.tab==='products')  return renderProducts();
+    if (state.tab==='pricing')   return renderPricing();
+    if (state.tab==='orders')    return renderOrders();
+    if (state.tab==='kids')      return renderKidsTab();
+  } else {
+    if (state.tab==='kids') {
+      if (!kid && state.kids.some(k=>k.pin)) return renderPinLock();
+      return renderKidSelector(kid);
+    }
+    if (!kid) return renderPinLock();
+    if (state.tab==='kidstock') return renderKidStock(kid);
+    if (state.tab==='kidsales') return renderKidSales(kid);
+  }
+  return '';
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// DASHBOARD
+// ═══════════════════════════════════════════════════════════════════════════
+function renderDashboard() {
+  const done = state.orders.filter(o=>o.status==='Completed');
+  const rev  = done.reduce((s,o)=>s+o.salePrice*o.qty,0);
+  const cogs = done.reduce((s,o)=>{ const c=calcCost(state.products.find(p=>p.id===o.productId)); return s+c.total*o.qty; },0);
+  const pft  = rev-cogs;
+  const marg = rev>0 ? (pft/rev)*100 : 0;
+  const pend = state.orders.filter(o=>o.status==='Pending').length;
+  const kidR = done.filter(o=>o.kidId).reduce((s,o)=>s+o.salePrice*o.qty,0);
+  const tPrinted = state.inventory.reduce((s,i)=>s+i.qty,0);
+  const tWithKids= state.allocations.filter(a=>a.status==='Active').reduce((s,a)=>s+a.qty,0);
+  const tSoldK   = state.kidSalesLog.reduce((s,k)=>s+k.qty,0);
+  const tRet     = state.allocations.filter(a=>a.status==='Closed').reduce((s,a)=>s+(a.returnedQty||0),0);
+  const tSoldD   = done.filter(o=>!o.kidId).reduce((s,o)=>s+o.qty,0);
+  const avail    = Math.max(0, tPrinted - tWithKids - tSoldK + tRet - tSoldD);
+
+  return `
+  <div class="section-head"><div><div class="section-title">Overview</div></div></div>
+  <div class="stat-grid">
+    <div class="stat-box"><div class="stat-val" style="color:var(--cyan)">${R(rev)}</div><div class="stat-label">Total Revenue</div></div>
+    <div class="stat-box"><div class="stat-val" style="color:var(--green)">${R(pft)}</div><div class="stat-label">Net Profit · ${Rpct(marg)}</div></div>
+    <div class="stat-box"><div class="stat-val" style="color:var(--amber)">${pend}</div><div class="stat-label">Pending Orders</div></div>
+    <div class="stat-box"><div class="stat-val" style="color:var(--pink)">${R(kidR)}</div><div class="stat-label">Kid Revenue</div></div>
+    <div class="stat-box"><div class="stat-val" style="color:#a78bfa">${avail}</div><div class="stat-label">Stock Available</div></div>
+    <div class="stat-box"><div class="stat-val" style="color:#f97316">${tWithKids}</div><div class="stat-label">With Kids</div></div>
+  </div>
+  <div class="card">
+    <div style="font-size:12px;font-weight:700;color:var(--cyan);text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px">Recent Orders</div>
+    ${state.orders.length===0 ? '<div class="empty"><div class="empty-msg">No orders yet</div></div>' :
+      [...state.orders].reverse().slice(0,5).map(o=>{
+        const p=state.products.find(pp=>pp.id===o.productId);
+        return `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)">
+          <div>
+            <div style="font-size:13px;font-weight:600">${p?.name||'?'} ×${o.qty}</div>
+            <div style="font-size:11px;color:var(--muted)">${o.customer} · ${o.date}</div>
+          </div>
+          <div style="text-align:right">
+            <div style="font-size:13px;font-weight:700;color:var(--green)">${R(o.salePrice*o.qty)}</div>
+            <span class="badge" style="background:${o.status==='Completed'?'rgba(46,204,113,.2)':'rgba(255,179,71,.2)'};color:${o.status==='Completed'?'var(--green)':'var(--amber)'}">${o.status}</span>
+          </div>
+        </div>`;
+      }).join('')
+    }
+  </div>
+  <div class="card">
+    <div style="font-size:12px;font-weight:700;color:var(--cyan);text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px">Filament Levels</div>
+    ${state.stock.length===0 ? '<div class="empty"><div class="empty-msg">No filament added</div></div>' :
+      state.stock.map(s=>{
+        const pct=Math.min(s.qty/5*100,100);
+        const col=s.qty<1?'var(--red)':s.qty<2?'var(--amber)':'var(--cyan)';
+        return `<div style="margin-bottom:12px">
+          <div style="display:flex;justify-content:space-between;margin-bottom:5px">
+            <span style="font-size:13px;font-weight:600">${s.name}</span>
+            <span style="font-size:12px;font-weight:700;color:${col}">${s.qty} kg</span>
+          </div>
+          <div class="prog-wrap"><div class="prog-fill" style="width:${pct}%;background:${col}"></div></div>
+        </div>`;
+      }).join('')
+    }
+  </div>`;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SETTINGS
+// ═══════════════════════════════════════════════════════════════════════════
+function renderSettings() {
+  const s = state.settings;
+  const preview = calcCost({filamentG:40,printHrs:2,labourMins:15,consumables:3,filamentId:null});
+  return `
+  <div class="section-head"><div class="section-title">⚙️ Business Setup</div></div>
+  <div class="info" style="margin-bottom:14px">Enter once — costs flow into every product automatically.</div>
+
+  <div class="card accent-cyan" style="margin-bottom:14px">
+    <div style="font-size:12px;font-weight:700;color:var(--cyan);margin-bottom:10px">LIVE PREVIEW — 40g print, 2hrs</div>
+    <div class="cost-row"><span style="color:var(--muted)">🎞️ Filament + waste</span><span>${R(preview.filCost)}</span></div>
+    <div class="cost-row"><span style="color:var(--muted)">⚡ Electricity</span><span>${R(preview.elecCost)}</span></div>
+    <div class="cost-row"><span style="color:var(--muted)">🖨️ Depreciation</span><span>${R(preview.deprCost)}</span></div>
+    <div class="cost-row"><span style="color:var(--muted)">🔧 Labour (15min)</span><span>${R(preview.labourCost)}</span></div>
+    <div class="cost-row"><span style="color:var(--muted)">📦 Consumables</span><span>${R(preview.consumCost)}</span></div>
+    <div class="cost-row"><span style="color:var(--muted)">🏢 Overhead</span><span>${R(preview.overheadCost)}</span></div>
+    <div class="cost-total"><span>Total Cost</span><span>${R(preview.total)}</span></div>
+  </div>
+
+  <div class="card">
+    <div class="settings-title" style="color:#f97316">⚡ Electricity</div>
+    <div class="settings-grid">
+      <div class="field"><label class="field-label">Rate (R/kWh)</label><input class="input" id="s-elecRate" value="${s.elecRate||'3.00'}" type="number" step="0.1"><div class="settings-hint">SA avg R2.50–R3.50</div></div>
+      <div class="field"><label class="field-label">Printer Watts</label><input class="input" id="s-printerWatts" value="${s.printerWatts||'150'}" type="number"><div class="settings-hint">Typical FDM: 80–200W</div></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="settings-title" style="color:#a78bfa">🖨️ Depreciation</div>
+    <div class="settings-grid">
+      <div class="field"><label class="field-label">Printer Cost (R)</label><input class="input" id="s-printerCost" value="${s.printerCost||'8000'}" type="number"><div class="settings-hint">What you paid</div></div>
+      <div class="field"><label class="field-label">Lifetime Hours</label><input class="input" id="s-printerLifetimeHrs" value="${s.printerLifetimeHrs||'4000'}" type="number"><div class="settings-hint">3000–6000hrs typical</div></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="settings-title" style="color:var(--amber)">🎞️ Waste & Labour</div>
+    <div class="settings-grid">
+      <div class="field"><label class="field-label">Waste Factor %</label><input class="input" id="s-wastePct" value="${s.wastePct||'12'}" type="number"><div class="settings-hint">Failed prints, purging</div></div>
+      <div class="field"><label class="field-label">Labour Rate (R/hr)</label><input class="input" id="s-labourRate" value="${s.labourRate||'80'}" type="number"><div class="settings-hint">R60–R150/hr typical</div></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="settings-title" style="color:var(--green)">🏢 Monthly Overheads</div>
+    <div class="settings-grid">
+      <div class="field"><label class="field-label">Monthly Fixed Costs (R)</label><input class="input" id="s-monthlyOverheads" value="${s.monthlyOverheads||'500'}" type="number"><div class="settings-hint">Internet, stall fees, etc.</div></div>
+      <div class="field"><label class="field-label">Items per Month</label><input class="input" id="s-itemsPerMonth" value="${s.itemsPerMonth||'50'}" type="number"><div class="settings-hint">Spreads overhead per item</div></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="settings-title" style="color:var(--cyan)">📦 Markup & Pricing</div>
+    <div class="settings-grid">
+      <div class="field"><label class="field-label">Default Markup %</label><input class="input" id="s-defaultMarkup" value="${s.defaultMarkup||'150'}" type="number"><div class="settings-hint">150% = sell at 2.5× cost</div></div>
+      <div class="field"><label class="field-label">Kid Wholesale %</label><input class="input" id="s-kidWholesalePct" value="${s.kidWholesalePct||'65'}" type="number"><div class="settings-hint">% of your sell price</div></div>
+    </div>
+    <div class="settings-grid" style="margin-top:10px">
+      <div class="field"><label class="field-label">VAT Registered?</label><input class="input" id="s-vatRegistered" value="${s.vatRegistered||'no'}" placeholder="yes/no"><div class="settings-hint">Threshold: R1M turnover</div></div>
+      <div class="field"><label class="field-label">Payment Fee %</label><input class="input" id="s-paymentFeePct" value="${s.paymentFeePct||'2.75'}" type="number" step="0.01"><div class="settings-hint">Yoco 2.75%, PayFast 2.9%</div></div>
+    </div>
+  </div>
+
+  <button class="btn btn-success btn-full" id="save-settings" style="margin-top:4px">💾 Save Settings</button>
+  <div style="height:16px"></div>`;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// STOCK (FILAMENT)
+// ═══════════════════════════════════════════════════════════════════════════
+function renderStock() {
+  const total = state.stock.reduce((s,f)=>s+f.qty*f.costPerKg,0);
+  return `
+  <div class="section-head">
+    <div><div class="section-title">🎞️ Filament Stock</div><div class="section-sub">Value: ${R(total)}</div></div>
+    <button class="btn btn-primary" id="add-stock">+ Add</button>
+  </div>
+  ${state.stock.length===0 ? '<div class="empty"><div class="empty-icon">🎞️</div><div class="empty-msg">No filament yet. Add your first purchase.</div></div>' :
+    state.stock.map(s=>`
+    <div class="card" style="margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
+        <div>
+          <div style="font-size:15px;font-weight:700">${s.name}</div>
+          <div style="font-size:12px;color:var(--muted)">${s.supplier||'—'} · ${s.date||'—'}</div>
+        </div>
+        <span style="display:inline-block;width:20px;height:20px;border-radius:4px;background:${s.colour||'#888'};border:1px solid var(--border);flex-shrink:0"></span>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px">
+        <div class="stat-box"><div class="stat-val" style="font-size:16px;color:${s.qty<1?'var(--red)':s.qty<2?'var(--amber)':'var(--green)'}">${s.qty}kg</div><div class="stat-label">In Stock</div></div>
+        <div class="stat-box"><div class="stat-val" style="font-size:16px">${R(s.costPerKg)}</div><div class="stat-label">Per kg</div></div>
+        <div class="stat-box"><div class="stat-val" style="font-size:16px;color:var(--cyan)">${R(s.qty*s.costPerKg)}</div><div class="stat-label">Value</div></div>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-amber" data-edit-stock="${s.id}">✏️ Edit</button>
+        <button class="btn btn-danger" data-del-stock="${s.id}">🗑️ Delete</button>
+      </div>
+    </div>`).join('')
+  }`;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// INVENTORY (FINISHED STOCK)
+// ═══════════════════════════════════════════════════════════════════════════
+function renderInventory() {
+  const roll = {};
+  state.products.forEach(p => {
+    const printed    = state.inventory.filter(i=>i.productId===p.id).reduce((s,i)=>s+i.qty,0);
+    const allocated  = state.allocations.filter(a=>a.productId===p.id&&a.status==='Active').reduce((s,a)=>s+a.qty,0);
+    const soldKids   = state.kidSalesLog.filter(s=>s.productId===p.id).reduce((s,k)=>s+k.qty,0);
+    const returned   = state.allocations.filter(a=>a.productId===p.id&&a.status==='Closed').reduce((s,a)=>s+(a.returnedQty||0),0);
+    const soldDirect = state.orders.filter(o=>o.productId===p.id&&o.status==='Completed'&&!o.kidId).reduce((s,o)=>s+o.qty,0);
+    roll[p.id]={printed,allocated,soldKids,returned,soldDirect,available:Math.max(0,printed-allocated-soldKids+returned-soldDirect)};
+  });
+  const tv=Object.values(roll);
+  const tP=tv.reduce((s,v)=>s+v.printed,0), tA=tv.reduce((s,v)=>s+v.available,0);
+  const tK=tv.reduce((s,v)=>s+v.allocated,0), tS=tv.reduce((s,v)=>s+v.soldKids+v.soldDirect,0);
+  return `
+  <div class="section-head">
+    <div><div class="section-title">🏭 Finished Stock</div><div class="section-sub">Track items from print to sale</div></div>
+    <button class="btn btn-primary" id="add-inventory">+ Log</button>
+  </div>
+  <div class="stat-grid" style="margin-bottom:14px">
+    <div class="stat-box"><div class="stat-val" style="color:#a78bfa">${tP}</div><div class="stat-label">Total Printed</div></div>
+    <div class="stat-box"><div class="stat-val" style="color:var(--green)">${tA}</div><div class="stat-label">Available</div></div>
+    <div class="stat-box"><div class="stat-val" style="color:var(--amber)">${tK}</div><div class="stat-label">With Kids</div></div>
+    <div class="stat-box"><div class="stat-val" style="color:var(--cyan)">${tS}</div><div class="stat-label">Sold</div></div>
+  </div>
+  ${state.products.length>0 ? `
+  <div class="card" style="margin-bottom:14px">
+    <div style="font-size:12px;font-weight:700;color:var(--cyan);margin-bottom:10px;text-transform:uppercase;letter-spacing:.06em">Stock Control Sheet</div>
+    <div class="tbl-wrap">
+      <table class="tbl">
+        <thead><tr><th>Product</th><th>Printed</th><th>→Kids</th><th>Sold</th><th>↩Ret</th><th>Avail</th></tr></thead>
+        <tbody>${state.products.map(p=>{
+          const m=roll[p.id]||{};const av=m.available||0;
+          return `<tr>
+            <td style="font-weight:600;max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.name}</td>
+            <td style="color:#a78bfa">${m.printed||0}</td>
+            <td style="color:var(--amber)">${m.allocated||0}</td>
+            <td style="color:var(--green)">${(m.soldKids||0)+(m.soldDirect||0)}</td>
+            <td style="color:var(--cyan)">${m.returned||0}</td>
+            <td><strong style="color:${av===0?'var(--red)':av<3?'var(--amber)':'var(--green)'}">  ${av}</strong></td>
+          </tr>`;
+        }).join('')}</tbody>
+      </table>
+    </div>
+  </div>` : ''}
+  <div class="card">
+    <div style="font-size:12px;font-weight:700;color:var(--cyan);margin-bottom:10px;text-transform:uppercase;letter-spacing:.06em">Print Batches</div>
+    ${state.inventory.length===0 ? '<div class="empty"><div class="empty-msg">No batches logged yet.</div></div>' :
+      [...state.inventory].reverse().map(i=>{
+        const p=state.products.find(pp=>pp.id===i.productId);
+        return `<div style="display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--border)">
+          <div><div style="font-size:13px;font-weight:600">${p?.name||'—'} × ${i.qty}</div><div style="font-size:11px;color:var(--muted)">${i.date}${i.note?' · '+i.note:''}</div></div>
+          <button class="btn btn-danger" data-del-inv="${i.id}" style="padding:5px 9px;font-size:11px">🗑️</button>
+        </div>`;
+      }).join('')
+    }
+  </div>`;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// PRODUCTS
+// ═══════════════════════════════════════════════════════════════════════════
+function renderProducts() {
+  const markup = 1 + Number(state.settings.defaultMarkup||150)/100;
+  return `
+  <div class="section-head">
+    <div><div class="section-title">📦 Products</div><div class="section-sub">6-layer cost breakdown</div></div>
+    <button class="btn btn-primary" id="add-product">+ Add</button>
+  </div>
+  ${state.products.length===0 ? '<div class="empty"><div class="empty-icon">📦</div><div class="empty-msg">No products yet. Add filament first, then add a product.</div></div>' :
+    state.products.map(p=>{
+      const c=calcCost(p); const fil=state.stock.find(s=>s.id===p.filamentId);
+      const sell=c.total*markup; const marg=sell>0?(1-c.total/sell)*100:0;
+      return `<div class="card" style="margin-bottom:10px">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">
+          <div style="font-size:15px;font-weight:700;flex:1">${p.name}</div>
+        </div>
+        <div style="font-size:11px;color:var(--muted);margin-bottom:10px">${fil?.name||'No filament'} · ${p.filamentG}g · ${p.printHrs}h · ${p.labourMins||15}min</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;font-size:11px;color:var(--muted);margin-bottom:10px">
+          <span>🎞️ ${R(c.filCost)}</span><span>⚡ ${R(c.elecCost)}</span>
+          <span>🖨️ ${R(c.deprCost)}</span><span>🔧 ${R(c.labourCost)}</span>
+          <span>📦 ${R(c.consumCost)}</span><span>🏢 ${R(c.overheadCost)}</span>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;border-top:1px solid var(--border);padding-top:10px;margin-bottom:10px">
+          <div><div style="font-size:10px;color:var(--muted)">COST</div><div style="font-size:16px;font-weight:800;color:var(--amber)">${R(c.total)}</div></div>
+          <div><div style="font-size:10px;color:var(--muted)">SELL</div><div style="font-size:16px;font-weight:800;color:var(--cyan)">${R(sell)}</div></div>
+          <div><div style="font-size:10px;color:var(--muted)">MARGIN</div><div style="font-size:16px;font-weight:800;color:var(--green)">${Rpct(marg)}</div></div>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-amber" data-edit-product="${p.id}">✏️ Edit</button>
+          <button class="btn btn-danger" data-del-product="${p.id}">🗑️ Delete</button>
+        </div>
+      </div>`;
+    }).join('')
+  }`;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// PRICING CALCULATOR
+// ═══════════════════════════════════════════════════════════════════════════
+function renderPricing() {
+  if (state.products.length===0) return '<div class="empty"><div class="empty-icon">🧮</div><div class="empty-msg">Add products first to use the pricing calculator.</div></div>';
+  const pid  = state._pricingPid || state.products[0].id;
+  const mkp  = state._pricingMarkup || Number(state.settings.defaultMarkup||150);
+  const kidP = state._pricingKidPct || Number(state.settings.kidWholesalePct||65);
+  const p    = state.products.find(x=>x.id===pid) || state.products[0];
+  const c    = calcCost(p);
+  const sale = c.total*(1+mkp/100);
+  const vat  = String(state.settings.vatRegistered||'').toLowerCase()==='yes'?0.15:0;
+  const fee  = Number(state.settings.paymentFeePct||2.75)/100;
+  const net  = sale*(1-fee);
+  const gp   = sale-c.total;
+  const marg = sale>0?(gp/sale)*100:0;
+  const kidBuy = sale*(kidP/100);
+  const kidPft = sale-kidBuy;
+  const beUnits = gp>0 ? Math.ceil(Number(state.settings.monthlyOverheads||0)/gp) : 0;
+  return `
+  <div class="section-head"><div class="section-title">🧮 Pricing</div></div>
+  <div class="field">
+    <label class="field-label">Select Product</label>
+    <select class="input" id="pricing-product">${state.products.map(pr=>`<option value="${pr.id}"${pr.id===p.id?' selected':''}>${pr.name}</option>`).join('')}</select>
+  </div>
+  <div class="card accent-cyan" style="margin-bottom:12px">
+    <div style="font-size:11px;font-weight:700;color:var(--cyan);margin-bottom:8px">6-LAYER COST</div>
+    <div class="cost-row"><span style="color:var(--muted)">🎞️ Filament + waste</span><span>${R(c.filCost)}</span></div>
+    <div class="cost-row"><span style="color:var(--muted)">⚡ Electricity</span><span>${R(c.elecCost)}</span></div>
+    <div class="cost-row"><span style="color:var(--muted)">🖨️ Depreciation</span><span>${R(c.deprCost)}</span></div>
+    <div class="cost-row"><span style="color:var(--muted)">🔧 Labour</span><span>${R(c.labourCost)}</span></div>
+    <div class="cost-row"><span style="color:var(--muted)">📦 Consumables</span><span>${R(c.consumCost)}</span></div>
+    <div class="cost-row"><span style="color:var(--muted)">🏢 Overhead</span><span>${R(c.overheadCost)}</span></div>
+    <div class="cost-total"><span>Total Cost</span><span>${R(c.total)}</span></div>
+  </div>
+
+  <div class="card" style="margin-bottom:12px">
+    <div style="display:flex;justify-content:space-between;margin-bottom:8px;font-size:13px">
+      <span>Markup: <strong style="color:var(--cyan)">${mkp}%</strong></span>
+      <span style="color:var(--green)">Sell: ${R(sale)}</span>
+    </div>
+    <input type="range" min="50" max="500" value="${mkp}" id="pricing-markup" style="width:100%;accent-color:var(--cyan);margin-bottom:10px">
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px">
+      ${[[2,c.total*2,'var(--amber)'],[2.5,c.total*2.5,'var(--cyan)'],[3,c.total*3,'var(--green)'],[3.5,c.total*3.5,'var(--pink)']].map(([lbl,v,col])=>
+        `<div style="background:rgba(255,255,255,.05);border-radius:8px;padding:8px;text-align:center;cursor:pointer" data-set-markup="${Math.round((v/c.total-1)*100)}">
+          <div style="font-size:12px;font-weight:800;color:${col}">${R(v)}</div>
+          <div style="font-size:9px;color:var(--muted);margin-top:2px">${lbl}×</div>
+        </div>`).join('')}
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:12px">
+    <div style="font-size:28px;font-weight:800;color:var(--green);margin-bottom:8px">${R(sale)}</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px">
+      <div style="color:var(--muted)">Gross profit: <strong style="color:var(--green)">${R(gp)}</strong></div>
+      <div style="color:var(--muted)">Margin: <strong style="color:var(--green)">${Rpct(marg)}</strong></div>
+      <div style="color:var(--muted)">After fee: <strong style="color:var(--cyan)">${R(net)}</strong></div>
+      ${vat>0?`<div style="color:var(--muted)">VAT incl: <strong style="color:var(--amber)">${R(sale*(1+vat))}</strong></div>`:''}
+      <div style="color:var(--muted)">Break-even: <strong style="color:var(--green)">${beUnits} units/mo</strong></div>
+    </div>
+  </div>
+
+  <div class="card accent-amber">
+    <div style="font-size:12px;font-weight:700;color:var(--amber);margin-bottom:10px">⭐ KID RESALE CALC</div>
+    <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px">
+      <span>Kid buys at <strong style="color:var(--amber)">${kidP}%</strong> of sell price</span>
+      <span style="color:var(--cyan)">${R(kidBuy)}</span>
+    </div>
+    <input type="range" min="40" max="90" value="${kidP}" id="pricing-kidpct" style="width:100%;accent-color:var(--amber);margin-bottom:10px">
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;text-align:center">
+      <div class="stat-box"><div class="stat-val" style="font-size:14px;color:#f97316">${R(kidBuy)}</div><div class="stat-label">Kid pays you</div></div>
+      <div class="stat-box"><div class="stat-val" style="font-size:14px;color:var(--text)">${R(sale)}</div><div class="stat-label">Kid sells at</div></div>
+      <div class="stat-box"><div class="stat-val" style="font-size:14px;color:var(--purple)">${R(kidPft)}</div><div class="stat-label">Kid profit</div></div>
+    </div>
+  </div>`;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ORDERS
+// ═══════════════════════════════════════════════════════════════════════════
+function renderOrders() {
+  return `
+  <div class="section-head">
+    <div><div class="section-title">🛒 Orders</div></div>
+    <button class="btn btn-primary" id="add-order">+ New</button>
+  </div>
+  ${state.orders.length===0 ? '<div class="empty"><div class="empty-icon">🛒</div><div class="empty-msg">No orders yet. Tap + New to record your first sale.</div></div>' :
+    [...state.orders].reverse().map(o=>{
+      const p=state.products.find(pp=>pp.id===o.productId);
+      const kid=state.kids.find(k=>k.id===o.kidId);
+      const c=calcCost(p); const pft=(o.salePrice-c.total)*o.qty;
+      return `<div class="card" style="margin-bottom:10px">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
+          <div>
+            <div style="font-size:14px;font-weight:700">${o.customer}</div>
+            <div style="font-size:12px;color:var(--muted)">${p?.name||'—'} ×${o.qty} · ${o.date}</div>
+            ${kid?`<div style="font-size:11px;color:var(--amber);margin-top:2px">⭐ ${kid.name}</div>`:''}
+          </div>
+          <button class="btn btn-ghost" style="padding:4px 8px;font-size:10px" data-toggle-order="${o.id}">
+            <span style="color:${o.status==='Completed'?'var(--green)':'var(--amber)'}">${o.status}</span>
+          </button>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px">
+          <div class="stat-box"><div class="stat-val" style="font-size:14px;color:var(--green)">${R(o.salePrice*o.qty)}</div><div class="stat-label">Revenue</div></div>
+          <div class="stat-box"><div class="stat-val" style="font-size:14px;color:var(--amber)">${R(c.total*o.qty)}</div><div class="stat-label">Cost</div></div>
+          <div class="stat-box"><div class="stat-val" style="font-size:14px;color:${pft>=0?'var(--green)':'var(--red)'}">${R(pft)}</div><div class="stat-label">Profit</div></div>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-amber" data-edit-order="${o.id}">✏️ Edit</button>
+          <button class="btn btn-danger" data-del-order="${o.id}">🗑️ Delete</button>
+        </div>
+      </div>`;
+    }).join('')
+  }`;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// KIDS TAB (business)
+// ═══════════════════════════════════════════════════════════════════════════
+function renderKidsTab() {
+  return `
+  <div class="section-head">
+    <div><div class="section-title">⭐ Kid Profiles</div></div>
+    <button class="btn btn-primary" id="add-kid">+ Add</button>
+  </div>
+  ${state.kids.map(kid=>{
+    const logs=state.kidSalesLog.filter(s=>s.kidId===kid.id);
+    const sold=logs.reduce((t,s)=>t+s.qty,0);
+    const rev=logs.reduce((t,s)=>t+s.qty*s.priceEach,0);
+    const cost=logs.reduce((t,s)=>t+s.qty*(s.wholesalePrice||0),0);
+    const pft=rev-cost;
+    const activeA=state.allocations.filter(a=>a.kidId===kid.id&&a.status==='Active');
+    const withKid=activeA.reduce((t,a)=>{const s=state.kidSalesLog.filter(sl=>sl.allocationId===a.id).reduce((x,sl)=>x+sl.qty,0);return t+(a.qty-s);},0);
+    return `<div class="card accent-amber" style="margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,#FFB347,#FF6EC7);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">${kid.avatar||'⭐'}</div>
+          <div>
+            <div style="font-size:15px;font-weight:700">${kid.name}</div>
+            ${kid.age?`<div style="font-size:11px;color:var(--muted)">Age ${kid.age}</div>`:''}
+            ${kid.pin?`<div style="font-size:11px;color:var(--cyan)">🔐 PIN: ${kid.pin}</div>`:''}
+          </div>
+        </div>
+        <div style="display:flex;gap:6px">
+          <button class="btn btn-amber" data-edit-kid="${kid.id}" style="padding:5px 9px">✏️</button>
+          <button class="btn btn-danger" data-del-kid="${kid.id}" style="padding:5px 9px">🗑️</button>
+        </div>
+      </div>
+      ${kid.goal?`<div style="background:rgba(255,179,71,.12);border-radius:8px;padding:7px 10px;font-size:12px;color:var(--amber);margin-bottom:10px">🎯 ${kid.goal}</div>`:''}
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px">
+        <div class="stat-box"><div class="stat-val" style="font-size:14px;color:var(--cyan)">${sold}</div><div class="stat-label">Sold</div></div>
+        <div class="stat-box"><div class="stat-val" style="font-size:14px;color:var(--amber)">${withKid}</div><div class="stat-label">With Kid</div></div>
+        <div class="stat-box"><div class="stat-val" style="font-size:14px;color:var(--green)">${R(rev)}</div><div class="stat-label">Revenue</div></div>
+        <div class="stat-box"><div class="stat-val" style="font-size:14px;color:var(--purple)">${R(pft)}</div><div class="stat-label">Profit</div></div>
+      </div>
+    </div>`;
+  }).join('')}
+  ${state.kids.length===0?'<div class="empty"><div class="empty-icon">⭐</div><div class="empty-msg">No kids added yet.</div></div>':''}
+
+  <div class="card accent-cyan" style="margin-top:6px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+      <div><div style="font-size:14px;font-weight:700;color:var(--cyan)">📦 Stock Allocations</div><div style="font-size:11px;color:var(--muted);margin-top:2px">Items given to kids for market day</div></div>
+      ${state.kids.length>0?`<button class="btn btn-primary" id="add-alloc" style="padding:8px 12px;font-size:12px">+ Allocate</button>`:''}
+    </div>
+    ${state.allocations.length===0?'<div class="empty"><div class="empty-msg">No allocations yet.</div></div>':
+      state.allocations.map(a=>{
+        const kid=state.kids.find(k=>k.id===a.kidId);
+        const prod=state.products.find(p=>p.id===a.productId);
+        const sold=state.kidSalesLog.filter(s=>s.allocationId===a.id).reduce((t,s)=>t+s.qty,0);
+        const remaining=a.qty-sold-(a.status==='Closed'?(a.returnedQty||0):0);
+        const pct=a.qty>0?Math.round((sold/a.qty)*100):0;
+        const kpft=sold*((a.priceEach||0)-(a.wholesalePrice||0));
+        return `<div class="${a.status==='Closed'?'alloc-card closed':'alloc-card'}" style="margin-bottom:8px">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
+            <div>
+              <div style="font-weight:700;font-size:14px">${kid?.name||'?'} — ${prod?.name||'?'}</div>
+              <div style="font-size:11px;color:var(--muted)">${a.marketDate}${a.notes?' · '+a.notes:''} · <span style="color:${a.status==='Active'?'var(--green)':'var(--muted)'}">${a.status}</span></div>
+              <div style="font-size:11px;color:var(--amber);margin-top:2px">Wholesale: R${a.wholesalePrice||'?'} · Sell: R${a.priceEach}</div>
+            </div>
+            ${a.status==='Active'?`<button class="btn btn-danger" data-del-alloc="${a.id}" style="padding:4px 8px;font-size:11px">🗑️</button>`:''}
+          </div>
+          <div class="alloc-grid" style="grid-template-columns:repeat(5,1fr)">
+            <div class="alloc-cell"><div class="val" style="color:var(--cyan)">${a.qty}</div><div class="lbl">Given</div></div>
+            <div class="alloc-cell"><div class="val" style="color:var(--green)">${sold}</div><div class="lbl">Sold</div></div>
+            <div class="alloc-cell"><div class="val" style="color:${remaining===0?'var(--green)':'var(--amber)'}">${Math.max(0,remaining)}</div><div class="lbl">With Kid</div></div>
+            <div class="alloc-cell"><div class="val" style="color:var(--cyan)">${a.returnedQty||0}</div><div class="lbl">Returned</div></div>
+            <div class="alloc-cell"><div class="val" style="color:var(--purple)">${R(kpft)}</div><div class="lbl">Kid Pft</div></div>
+          </div>
+          ${a.status==='Active'?`<div style="margin-top:8px"><div style="display:flex;justify-content:space-between;font-size:10px;color:var(--muted);margin-bottom:3px"><span>Progress</span><span>${pct}%</span></div><div class="prog-wrap"><div class="prog-fill" style="width:${pct}%;background:${pct===100?'var(--green)':'var(--cyan)'}"></div></div></div>`:''}
+        </div>`;
+      }).join('')
+    }
+  </div>`;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// KID VIEWS
+// ═══════════════════════════════════════════════════════════════════════════
+function renderPinLock() {
+  return `
+  <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 20px;min-height:60vh">
+    <div style="font-size:52px;margin-bottom:12px">🔐</div>
+    <h2 style="font-size:22px;font-weight:800;color:var(--kt);margin-bottom:6px">Enter Your PIN</h2>
+    <p style="font-size:13px;color:var(--km);margin-bottom:24px;text-align:center">Ask a grown-up if you forgot it</p>
+    <div class="pin-dots" id="pin-dots">
+      <div class="pin-dot" id="pd0"></div><div class="pin-dot" id="pd1"></div>
+      <div class="pin-dot" id="pd2"></div><div class="pin-dot" id="pd3"></div>
+    </div>
+    <div id="pin-err" style="color:var(--red);font-size:13px;font-weight:700;margin-bottom:12px;min-height:20px"></div>
+    <div class="pin-pad" id="pin-pad">
+      ${['1','2','3','4','5','6','7','8','9','','0','⌫'].map((k,i)=>
+        k===''?'<div></div>':`<button class="pin-key${k==='⌫'?' del':''}" data-pin-key="${k}">${k}</button>`
+      ).join('')}
+    </div>
+  </div>`;
+}
+
+function renderKidSelector(currentKid) {
+  const kids = state.kids;
+  if (kids.length===0) return `<div class="empty" style="padding-top:60px"><div style="font-size:48px;margin-bottom:16px">👋</div><div style="font-size:18px;font-weight:700;color:var(--kt);margin-bottom:8px">No profiles yet!</div><div style="color:var(--km)">Ask a grown-up to add your profile in Business Mode.</div></div>`;
+  return `
+  ${currentKid?`<div style="display:flex;justify-content:flex-end;margin-bottom:10px"><button class="btn btn-ghost" id="logout-kid" style="font-size:12px">🔒 Switch</button></div>`:''}
+  <div style="text-align:center;margin-bottom:24px">
+    <div style="font-size:36px">👤</div>
+    <h2 style="font-size:20px;font-weight:800;color:var(--kt);margin-top:8px">${currentKid?`Hi ${currentKid.name}! 👋`:'Who are you?'}</h2>
+    <p style="color:var(--km);font-size:13px;margin-top:4px">${currentKid?'Tap a tab above.':'Enter your PIN to start!'}</p>
+  </div>
+  ${kids.map(kid=>{
+    const logs=state.kidSalesLog.filter(s=>s.kidId===kid.id);
+    const sold=logs.reduce((t,s)=>t+s.qty,0);
+    const rev=logs.reduce((t,s)=>t+s.qty*s.priceEach,0);
+    const cost=logs.reduce((t,s)=>t+s.qty*(s.wholesalePrice||0),0);
+    const pft=rev-cost;
+    const isMe=currentKid?.id===kid.id;
+    return `<div class="kid-profile-card${isMe?' selected':''}" data-select-kid="${kid.id}">
+      <div style="font-size:36px;margin-bottom:6px">${kid.avatar||'⭐'}</div>
+      <div style="font-size:17px;font-weight:800;color:${isMe?'#2d1a00':'var(--kt)'}">${kid.name}</div>
+      ${kid.age?`<div style="font-size:12px;color:var(--km);margin-top:2px">Age ${kid.age}</div>`:''}
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px">
+        <div style="background:rgba(255,179,71,.15);border-radius:10px;padding:8px"><div style="font-size:13px;font-weight:800;color:var(--purple)">${R(pft)}</div><div style="font-size:10px;color:var(--km)">Profit</div></div>
+        <div style="background:rgba(46,204,113,.12);border-radius:10px;padding:8px"><div style="font-size:13px;font-weight:800;color:var(--green)">${sold}</div><div style="font-size:10px;color:var(--km)">Sold</div></div>
+      </div>
+    </div>`;
+  }).join('')}`;
+}
+
+function renderKidStock(kid) {
+  const myAllocs=state.allocations.filter(a=>a.kidId===kid.id);
+  const soldFor=(id)=>state.kidSalesLog.filter(s=>s.allocationId===id).reduce((t,s)=>t+s.qty,0);
+  const remainFor=(a)=>Math.max(0,a.qty-soldFor(a.id)-(a.status==='Closed'?(a.returnedQty||0):0));
+  const tGiven=myAllocs.reduce((t,a)=>t+a.qty,0);
+  const tSold=myAllocs.reduce((t,a)=>t+soldFor(a.id),0);
+  const tLeft=myAllocs.reduce((t,a)=>t+remainFor(a),0);
+  const tRev=myAllocs.reduce((t,a)=>t+soldFor(a.id)*a.priceEach,0);
+  const tCost=myAllocs.reduce((t,a)=>t+soldFor(a.id)*(a.wholesalePrice||0),0);
+  const tPft=tRev-tCost;
+  const tRet=myAllocs.reduce((t,a)=>t+(a.returnedQty||0),0);
+  return `
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+    <div>
+      <div style="font-size:18px;font-weight:800;color:var(--kt)">${kid.avatar||'📦'} ${kid.name}'s Stock</div>
+      <div style="font-size:12px;color:var(--km)">Tap I Sold Some! after every sale 🎉</div>
+    </div>
+    <button onclick="window.location.reload()" style="background:rgba(255,179,71,.15);border:1px solid var(--kbr);color:#7a3d00;border-radius:8px;padding:6px 10px;font-size:11px;font-weight:700;cursor:pointer">🔒 Lock</button>
+  </div>
+  <div class="stat-grid" style="margin-bottom:14px">
+    <div class="stat-box-kid" style="border-color:rgba(0,212,255,.3);background:#e8f9ff"><div class="stat-val" style="color:var(--cyan)">${tGiven}</div><div class="stat-label" style="color:var(--km)">📦 Given</div></div>
+    <div class="stat-box-kid" style="border-color:rgba(46,204,113,.3);background:#eafaf1"><div class="stat-val" style="color:var(--green)">${tSold}</div><div class="stat-label" style="color:var(--km)">✅ Sold</div></div>
+    <div class="stat-box-kid" style="border-color:rgba(255,179,71,.3);background:#fff4ea"><div class="stat-val" style="color:var(--amber)">${tLeft}</div><div class="stat-label" style="color:var(--km)">🛍️ With Me</div></div>
+    <div class="stat-box-kid" style="border-color:rgba(147,51,234,.3);background:#f5f0ff"><div class="stat-val" style="color:var(--purple)">R${tPft.toFixed(0)}</div><div class="stat-label" style="color:var(--km)">🎉 Profit</div></div>
+  </div>
+  ${tSold>0?`<div class="profit-strip" style="margin-bottom:12px">
+    <div class="profit-strip-grid">
+      <div class="profit-cell"><div class="pv" style="color:var(--green)">R${tRev.toFixed(0)}</div><div class="pl">You earned</div></div>
+      <div class="profit-cell"><div class="pv" style="color:#f97316">R${tCost.toFixed(0)}</div><div class="pl">You paid me</div></div>
+      <div class="profit-cell"><div class="pv" style="color:var(--purple)">R${tPft.toFixed(0)}</div><div class="pl">Your profit</div></div>
+    </div>
+  </div>`:''}
+  ${myAllocs.length===0?`<div class="card-kid" style="text-align:center;padding:32px"><div style="font-size:32px;margin-bottom:8px">🛒</div><div style="font-weight:700;color:var(--kt);margin-bottom:4px">No stock yet!</div><div style="font-size:13px;color:var(--km)">Ask a grown-up to give you items for market day.</div></div>`:''}
+  ${myAllocs.map(a=>{
+    const prod=state.products.find(p=>p.id===a.productId);
+    const sold=soldFor(a.id); const withMe=remainFor(a);
+    const remaining=a.qty-sold;
+    const rev=sold*a.priceEach; const cost=sold*(a.wholesalePrice||0); const pft=rev-cost;
+    const pct=a.qty>0?Math.round((sold/a.qty)*100):0;
+    const isClosed=a.status==='Closed';
+    const mySales=state.kidSalesLog.filter(s=>s.allocationId===a.id);
+    return `<div class="card-kid" style="opacity:${isClosed?.75:1};border-color:${isClosed?'#ccc':'var(--kbr)'}">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">
+        <div><div style="font-size:16px;font-weight:800;color:var(--kt)">${prod?.name||'Item'}</div>
+          <div style="font-size:11px;color:var(--km);margin-top:2px">${a.marketDate}${a.notes?' · '+a.notes:''}</div></div>
+        <span style="font-size:10px;font-weight:700;background:${isClosed?'#f5f5f5':'#FFF8F0'};color:${isClosed?'#999':'#f97316'};border-radius:20px;padding:3px 10px">${isClosed?'Closed ✓':'Active'}</span>
+      </div>
+      <div style="display:grid;grid-template-columns:${isClosed?'repeat(4,1fr)':'repeat(3,1fr)'};gap:8px;margin-bottom:10px">
+        <div style="background:#FFF8F0;border-radius:10px;padding:10px;text-align:center"><div style="font-size:20px;font-weight:800;color:var(--cyan)">${a.qty}</div><div style="font-size:10px;color:var(--km)">📦 Given</div></div>
+        <div style="background:#FFF8F0;border-radius:10px;padding:10px;text-align:center"><div style="font-size:20px;font-weight:800;color:var(--green)">${sold}</div><div style="font-size:10px;color:var(--km)">✅ Sold</div></div>
+        <div style="background:#FFF8F0;border-radius:10px;padding:10px;text-align:center"><div style="font-size:20px;font-weight:800;color:${withMe===0?'var(--green)':'var(--amber)'}">${withMe}</div><div style="font-size:10px;color:var(--km)">🛍️ With Me</div></div>
+        ${isClosed?`<div style="background:#FFF8F0;border-radius:10px;padding:10px;text-align:center"><div style="font-size:20px;font-weight:800;color:#a78bfa">${a.returnedQty||0}</div><div style="font-size:10px;color:var(--km)">↩️ Returned</div></div>`:''}
+      </div>
+      ${sold>0?`<div class="profit-strip" style="margin-bottom:10px">
+        <div class="profit-strip-grid">
+          <div class="profit-cell"><div class="pv" style="color:var(--green)">R${rev.toFixed(0)}</div><div class="pl">Earned</div></div>
+          <div class="profit-cell"><div class="pv" style="color:#f97316">R${cost.toFixed(0)}</div><div class="pl">Paid me</div></div>
+          <div class="profit-cell"><div class="pv" style="color:var(--purple)">R${pft.toFixed(0)}</div><div class="pl">My profit</div></div>
+        </div>
+      </div>`:''}
+      <div style="margin-bottom:10px">
+        <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--km);margin-bottom:4px"><span>Sales progress · R${a.priceEach} each</span><span>${pct}%</span></div>
+        <div style="height:10px;border-radius:5px;background:#FFE5C0;overflow:hidden"><div style="height:100%;width:${pct}%;background:${pct===100?'var(--green)':'linear-gradient(90deg,#FFB347,#FF6EC7)'};border-radius:5px"></div></div>
+      </div>
+      ${mySales.length>0?`<div style="background:#f9faf9;border-radius:8px;padding:10px;margin-bottom:10px">
+        <div style="font-size:10px;font-weight:700;color:var(--km);margin-bottom:6px;text-transform:uppercase;letter-spacing:.06em">Sale History</div>
+        ${mySales.map(s=>`<div style="display:flex;justify-content:space-between;font-size:12px;padding:4px 0;border-bottom:1px solid #eee"><span style="color:var(--kt)">${s.date} · Sold ${s.qty}${s.note?' — '+s.note:''}</span><div><span style="font-weight:700;color:var(--green)">+R${(s.qty*s.priceEach).toFixed(0)}</span> <span style="color:var(--purple);font-size:10px">pft R${((s.qty*s.priceEach)-(s.qty*(s.wholesalePrice||0))).toFixed(0)}</span></div></div>`).join('')}
+      </div>`:''}
+      ${!isClosed?`
+        <div id="sale-form-${a.id}" style="display:none" class="sale-box">
+          <div style="font-size:14px;font-weight:700;color:var(--kt);margin-bottom:10px">How many did you sell?</div>
+          <div class="qty-row">
+            <button class="qty-btn" data-qty-minus="${a.id}">−</button>
+            <div class="qty-val" id="qty-val-${a.id}">1</div>
+            <button class="qty-btn" data-qty-plus="${a.id}" data-max="${remaining}">+</button>
+          </div>
+          <input id="sale-note-${a.id}" placeholder="Note (optional)" style="width:100%;background:white;border:1px solid var(--kbr);border-radius:8px;padding:9px 12px;font-size:14px;font-family:inherit;margin-bottom:10px;outline:none">
+          <div class="profit-preview" id="profit-prev-${a.id}" data-price="${a.priceEach}" data-wholesale="${a.wholesalePrice||0}">
+            <div class="profit-cell"><div class="pv" style="color:var(--green)" id="pp-earn-${a.id}">R${a.priceEach.toFixed(0)}</div><div class="pl">You earn</div></div>
+            <div class="profit-cell"><div class="pv" style="color:#f97316" id="pp-pay-${a.id}">R${(a.wholesalePrice||0).toFixed(0)}</div><div class="pl">You pay me</div></div>
+            <div class="profit-cell"><div class="pv" style="color:var(--purple)" id="pp-pft-${a.id}">R${(a.priceEach-(a.wholesalePrice||0)).toFixed(0)}</div><div class="pl">Profit</div></div>
+          </div>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-success btn-full" data-confirm-sale="${a.id}">✅ Confirm Sale!</button>
+            <button class="btn btn-ghost" data-cancel-sale="${a.id}" style="flex-shrink:0">✕</button>
+          </div>
+        </div>
+        <div id="sale-btn-${a.id}">
+          ${remaining===0?
+            `<div style="background:#f0fdf4;border:2px solid var(--green);border-radius:12px;padding:12px;text-align:center;font-weight:700;color:var(--green);font-size:15px">🎉 All sold out!</div>`:
+            `<button class="btn-kid" data-open-sale="${a.id}">🛍️ I Sold Some!</button>`
+          }
+        </div>
+        <div id="return-form-${a.id}" style="display:none;background:#f8f8f8;border:1px solid #ddd;border-radius:10px;padding:12px;margin-top:8px">
+          <div style="font-size:13px;font-weight:700;color:var(--kt);margin-bottom:8px">How many are you returning? (${remaining} unsold)</div>
+          <div style="display:flex;gap:8px">
+            <input type="number" id="return-qty-${a.id}" min="0" max="${remaining}" placeholder="0–${remaining}" style="flex:1;background:white;border:1px solid #ddd;border-radius:8px;padding:9px 12px;font-size:15px;font-family:inherit;outline:none">
+            <button class="btn btn-ghost" data-confirm-return="${a.id}" style="white-space:nowrap">Close Out</button>
+            <button class="btn btn-ghost" data-cancel-return="${a.id}" style="padding:8px 10px">✕</button>
+          </div>
+        </div>
+        ${remaining>0&&!document.getElementById('return-form-'+a.id+'_showing')?`<button class="btn btn-ghost" data-open-return="${a.id}" style="width:100%;margin-top:8px;font-size:12px;justify-content:center">📋 Close out — return unsold stock</button>`:''}
+      `:`<div style="background:#f9f9f9;border-radius:8px;padding:8px;text-align:center;font-size:12px;color:#999">Closed · ${a.returnedQty||0} item(s) returned</div>`}
+    </div>`;
+  }).join('')}`;
+}
+
+function renderKidSales(kid) {
+  const mySales=state.kidSalesLog.filter(s=>s.kidId===kid.id);
+  const tSold=mySales.reduce((t,s)=>t+s.qty,0);
+  const tRev=mySales.reduce((t,s)=>t+s.qty*s.priceEach,0);
+  const tCost=mySales.reduce((t,s)=>t+s.qty*(s.wholesalePrice||0),0);
+  const tPft=tRev-tCost;
+  const LEVELS=[{name:'Starter',t:0,e:'🌱',c:'var(--green)'},{name:'Seller',t:50,e:'💪',c:'var(--cyan)'},{name:'Market Star',t:150,e:'⭐',c:'var(--amber)'},{name:'Boss Hustler',t:300,e:'🚀',c:'var(--purple)'},{name:'Mini Mogul',t:500,e:'💎',c:'var(--pink)'}];
+  const level=[...LEVELS].reverse().find(l=>tPft>=l.t)||LEVELS[0];
+  const next=LEVELS[LEVELS.findIndex(l=>l.name===level.name)+1];
+  const pct=next?Math.min(((tPft-level.t)/(next.t-level.t))*100,100):100;
+  return `
+  <div style="text-align:center;margin-bottom:20px">
+    <div style="font-size:40px">${level.e}</div>
+    <h2 style="font-size:20px;font-weight:800;color:var(--kt);margin-top:8px">${kid.name}'s Sales</h2>
+    <div style="display:inline-block;background:${level.c};color:white;border-radius:20px;padding:4px 14px;font-weight:800;font-size:13px;margin-top:6px">${level.name}</div>
+  </div>
+  <div class="stat-grid three" style="margin-bottom:14px">
+    <div class="stat-box-kid" style="border-color:rgba(46,204,113,.3);background:#eafaf1"><div class="stat-val" style="font-size:17px;color:var(--green)">R${tRev.toFixed(0)}</div><div class="stat-label" style="color:var(--km)">💰 Earned</div></div>
+    <div class="stat-box-kid" style="border-color:rgba(249,115,22,.3);background:#fff4ea"><div class="stat-val" style="font-size:17px;color:#f97316">R${tCost.toFixed(0)}</div><div class="stat-label" style="color:var(--km)">💸 Paid Me</div></div>
+    <div class="stat-box-kid" style="border-color:rgba(147,51,234,.3);background:#f5f0ff"><div class="stat-val" style="font-size:17px;color:var(--purple)">R${tPft.toFixed(0)}</div><div class="stat-label" style="color:var(--km)">🎉 Profit</div></div>
+  </div>
+  <div class="level-bar">
+    <div class="level-header"><span>${level.e} ${level.name}</span><span>${next?next.e+' '+next.name:'🏆 MAX LEVEL!'}</span></div>
+    <div class="level-prog"><div class="level-fill" style="width:${pct}%"></div></div>
+    ${next?`<div style="font-size:11px;color:var(--km);margin-top:6px;text-align:center">Earn R${(next.t-tPft).toFixed(0)} more profit to reach ${next.name}!</div>`:''}
+    ${kid.goal?`<div style="margin-top:8px;background:#FFF8F0;border-radius:8px;padding:8px 10px;font-size:12px;color:var(--km)">🎯 Your goal: <strong>${kid.goal}</strong></div>`:''}
+  </div>
+  ${mySales.length===0?`<div class="card-kid" style="text-align:center;padding:32px"><div style="font-size:32px;margin-bottom:8px">🏪</div><div style="font-weight:700;color:var(--kt);margin-bottom:4px">No sales yet!</div><div style="font-size:13px;color:var(--km)">Go to My Stock and tap 🛍️ I Sold Some!</div></div>`:''}
+  ${[...mySales].reverse().map(s=>{
+    const p=state.products.find(pp=>pp.id===s.productId);
+    const earn=s.qty*s.priceEach; const cost=s.qty*(s.wholesalePrice||0); const pft=earn-cost;
+    return `<div class="card-kid" style="margin-bottom:10px">
+      <div style="margin-bottom:8px"><div style="font-weight:700;color:var(--kt);font-size:14px">${p?.name||'Item'} × ${s.qty}</div><div style="font-size:11px;color:var(--km)">${s.date}${s.note?' · '+s.note:''}</div></div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;text-align:center">
+        <div style="background:#FFF8F0;border-radius:8px;padding:8px"><div style="font-size:14px;font-weight:800;color:var(--green)">R${earn.toFixed(0)}</div><div style="font-size:9px;color:var(--km)">💰 Earned</div></div>
+        <div style="background:#FFF8F0;border-radius:8px;padding:8px"><div style="font-size:14px;font-weight:800;color:#f97316">R${cost.toFixed(0)}</div><div style="font-size:9px;color:var(--km)">💸 Paid Me</div></div>
+        <div style="background:#FFF8F0;border-radius:8px;padding:8px"><div style="font-size:14px;font-weight:800;color:var(--purple)">R${pft.toFixed(0)}</div><div style="font-size:9px;color:var(--km)">🎉 Profit</div></div>
+      </div>
+    </div>`;
+  }).join('')}`;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// MODALS
+// ═══════════════════════════════════════════════════════════════════════════
+function renderModal() {
+  const m = state.modal;
+  let content = '';
+  if (m.type==='confirm') {
+    content = `<div style="text-align:center;padding:10px 0">
+      <div style="font-size:36px;margin-bottom:10px">⚠️</div>
+      <div style="font-size:16px;font-weight:700;margin-bottom:8px">${m.title||'Are you sure?'}</div>
+      <div style="font-size:13px;color:var(--muted);margin-bottom:20px">${m.message}</div>
+      <div style="display:flex;gap:10px;justify-content:center">
+        <button class="btn btn-danger" id="modal-yes">Yes, Delete</button>
+        <button class="btn btn-ghost" id="modal-no">Cancel</button>
+      </div>
+    </div>`;
+  } else if (m.type==='stock') {
+    const s = m.data || {};
+    content = `
+      <div class="modal-head"><span class="modal-title">${s.id?'✏️ Edit Filament':'➕ New Filament'}</span><button class="modal-close" id="modal-close">✕</button></div>
+      <div class="field"><label class="field-label">Filament Name *</label><input class="input" id="f-name" value="${s.name||''}" placeholder="e.g. PLA+ Black 1kg"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div class="field"><label class="field-label">Supplier</label><input class="input" id="f-supplier" value="${s.supplier||''}" placeholder="e.g. Filament SA"></div>
+        <div class="field"><label class="field-label">Date</label><input class="input" id="f-date" type="date" value="${s.date||new Date().toISOString().slice(0,10)}"></div>
+        <div class="field"><label class="field-label">Qty (kg) *</label><input class="input" id="f-qty" type="number" value="${s.qty||''}" placeholder="1"></div>
+        <div class="field"><label class="field-label">Cost per kg (R) *</label><input class="input" id="f-costPerKg" type="number" value="${s.costPerKg||''}" placeholder="320"></div>
+      </div>
+      <div class="field"><label class="field-label">Colour</label><input type="color" id="f-colour" value="${s.colour||'#00D4FF'}" style="width:100%;height:42px;border-radius:9px;border:1px solid var(--border);cursor:pointer;background:transparent"></div>
+      <div id="modal-err"></div>
+      <div style="display:flex;gap:10px;margin-top:14px">
+        <button class="btn btn-success btn-full" id="modal-save">💾 ${s.id?'Save Changes':'Save'}</button>
+        <button class="btn btn-ghost" id="modal-close2" style="flex-shrink:0">Cancel</button>
+      </div>`;
+  } else if (m.type==='product') {
+    const p = m.data || {};
+    const filSel = state.stock.map(s=>`<option value="${s.id}"${s.id===p.filamentId?' selected':''}>${s.name} (R${s.costPerKg}/kg)</option>`).join('');
+    content = `
+      <div class="modal-head"><span class="modal-title">${p.id?'✏️ Edit Product':'➕ New Product'}</span><button class="modal-close" id="modal-close">✕</button></div>
+      <div class="field"><label class="field-label">Product Name *</label><input class="input" id="p-name" value="${p.name||''}" placeholder="e.g. Dragon Keyring"></div>
+      <div class="field"><label class="field-label">Filament Type</label><select class="input" id="p-filamentId"><option value="">Select filament…</option>${filSel}</select></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div class="field"><label class="field-label">Filament (g) *</label><input class="input" id="p-filamentG" type="number" value="${p.filamentG||''}" placeholder="18"></div>
+        <div class="field"><label class="field-label">Print Time (hrs)</label><input class="input" id="p-printHrs" type="number" step="0.1" value="${p.printHrs||''}" placeholder="1.5"></div>
+        <div class="field"><label class="field-label">Labour (mins)</label><input class="input" id="p-labourMins" type="number" value="${p.labourMins||15}" placeholder="15"></div>
+        <div class="field"><label class="field-label">Consumables (R)</label><input class="input" id="p-consumables" type="number" value="${p.consumables||3}" placeholder="3"></div>
+      </div>
+      <div class="field"><label class="field-label">Notes</label><input class="input" id="p-notes" value="${p.notes||''}" placeholder="Optional notes"></div>
+      <div id="modal-cost-preview" style="margin-top:10px"></div>
+      <div id="modal-err"></div>
+      <div style="display:flex;gap:10px;margin-top:14px">
+        <button class="btn btn-success btn-full" id="modal-save">💾 ${p.id?'Save Changes':'Save Product'}</button>
+        <button class="btn btn-ghost" id="modal-close2" style="flex-shrink:0">Cancel</button>
+      </div>`;
+  } else if (m.type==='order') {
+    const o = m.data || {};
+    const prodSel = state.products.map(p=>`<option value="${p.id}"${p.id===o.productId?' selected':''}>${p.name}</option>`).join('');
+    const kidSel  = state.kids.map(k=>`<option value="${k.id}"${k.id===o.kidId?' selected':''}>${k.name}</option>`).join('');
+    content = `
+      <div class="modal-head"><span class="modal-title">${o.id?'✏️ Edit Order':'➕ New Order'}</span><button class="modal-close" id="modal-close">✕</button></div>
+      <div class="field"><label class="field-label">Customer Name *</label><input class="input" id="o-customer" value="${o.customer||''}" placeholder="Name"></div>
+      <div class="field"><label class="field-label">Product *</label><select class="input" id="o-productId"><option value="">Select product…</option>${prodSel}</select></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div class="field"><label class="field-label">Qty</label><input class="input" id="o-qty" type="number" value="${o.qty||1}" placeholder="1"></div>
+        <div class="field"><label class="field-label">Sale Price (R each) *</label><input class="input" id="o-salePrice" type="number" value="${o.salePrice||''}" placeholder="0"></div>
+        <div class="field"><label class="field-label">Date</label><input class="input" id="o-date" type="date" value="${o.date||new Date().toISOString().slice(0,10)}"></div>
+        <div class="field"><label class="field-label">Status</label><select class="input" id="o-status"><option${o.status==='Pending'||!o.status?' selected':''}>Pending</option><option${o.status==='Completed'?' selected':''}>Completed</option></select></div>
+      </div>
+      <div class="field"><label class="field-label">Kid Programme (optional)</label><select class="input" id="o-kidId"><option value="">None — direct sale</option>${kidSel}</select></div>
+      <div id="o-order-summary" style="margin-top:10px"></div>
+      <div id="modal-err"></div>
+      <div style="display:flex;gap:10px;margin-top:14px">
+        <button class="btn btn-success btn-full" id="modal-save">💾 ${o.id?'Save Changes':'Save Order'}</button>
+        <button class="btn btn-ghost" id="modal-close2" style="flex-shrink:0">Cancel</button>
+      </div>`;
+  } else if (m.type==='kid') {
+    const k = m.data || {};
+    content = `
+      <div class="modal-head"><span class="modal-title">${k.id?'✏️ Edit Profile':'➕ Add Kid'}</span><button class="modal-close" id="modal-close">✕</button></div>
+      <div class="field"><label class="field-label">Kid's Name *</label><input class="input" id="k-name" value="${k.name||''}" placeholder="e.g. Aisha"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div class="field"><label class="field-label">Age (optional)</label><input class="input" id="k-age" type="number" value="${k.age||''}" placeholder="10"></div>
+        <div class="field"><label class="field-label">4-digit PIN *</label><input class="input" id="k-pin" value="${k.pin||''}" maxlength="4" placeholder="1234" style="letter-spacing:8px;font-size:20px"></div>
+      </div>
+      <div class="field"><label class="field-label">Savings Goal (optional)</label><input class="input" id="k-goal" value="${k.goal||''}" placeholder="e.g. New bike = R500"></div>
+      <div class="info-amber">🔐 Share the PIN only with this child. They use it to log in.</div>
+      <div id="modal-err"></div>
+      <div style="display:flex;gap:10px;margin-top:14px">
+        <button class="btn btn-success btn-full" id="modal-save">💾 ${k.id?'Save Changes':'Add Kid'}</button>
+        <button class="btn btn-ghost" id="modal-close2" style="flex-shrink:0">Cancel</button>
+      </div>`;
+  } else if (m.type==='inventory') {
+    content = `
+      <div class="modal-head"><span class="modal-title">➕ Log Print Batch</span><button class="modal-close" id="modal-close">✕</button></div>
+      <div class="field"><label class="field-label">Product *</label><select class="input" id="inv-productId"><option value="">Select product…</option>${state.products.map(p=>`<option value="${p.id}">${p.name}</option>`).join('')}</select></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div class="field"><label class="field-label">Qty Printed *</label><input class="input" id="inv-qty" type="number" placeholder="10"></div>
+        <div class="field"><label class="field-label">Date</label><input class="input" id="inv-date" type="date" value="${new Date().toISOString().slice(0,10)}"></div>
+      </div>
+      <div class="field"><label class="field-label">Note (optional)</label><input class="input" id="inv-note" placeholder="e.g. Batch 1"></div>
+      <div id="modal-err"></div>
+      <div style="display:flex;gap:10px;margin-top:14px">
+        <button class="btn btn-success btn-full" id="modal-save">💾 Save Batch</button>
+        <button class="btn btn-ghost" id="modal-close2" style="flex-shrink:0">Cancel</button>
+      </div>`;
+  } else if (m.type==='alloc') {
+    const kidSel  = state.kids.map(k=>`<option value="${k.id}">${k.name}</option>`).join('');
+    const prodSel = state.products.map(p=>`<option value="${p.id}">${p.name}</option>`).join('');
+    content = `
+      <div class="modal-head"><span class="modal-title">📦 Allocate Stock to Kid</span><button class="modal-close" id="modal-close">✕</button></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div class="field"><label class="field-label">Kid *</label><select class="input" id="al-kidId"><option value="">Select…</option>${kidSel}</select></div>
+        <div class="field"><label class="field-label">Product *</label><select class="input" id="al-productId"><option value="">Select…</option>${prodSel}</select></div>
+        <div class="field"><label class="field-label">Qty *</label><input class="input" id="al-qty" type="number" placeholder="10"></div>
+        <div class="field"><label class="field-label">Market Date</label><input class="input" id="al-marketDate" type="date" value="${new Date().toISOString().slice(0,10)}"></div>
+        <div class="field"><label class="field-label">Wholesale Price (R) *</label><input class="input" id="al-wholesalePrice" type="number" placeholder="Kid pays you this"><div style="font-size:10px;color:var(--muted);margin-top:3px">What the kid pays you per item</div></div>
+        <div class="field"><label class="field-label">Kid Sell Price (R) *</label><input class="input" id="al-priceEach" type="number" placeholder="Kid charges this"><div style="font-size:10px;color:var(--muted);margin-top:3px">What the kid charges customers</div></div>
+      </div>
+      <div class="field"><label class="field-label">Notes (optional)</label><input class="input" id="al-notes" placeholder="e.g. Saturday craft market"></div>
+      <div id="modal-err"></div>
+      <div style="display:flex;gap:10px;margin-top:14px">
+        <button class="btn btn-success btn-full" id="modal-save">💾 Allocate Stock</button>
+        <button class="btn btn-ghost" id="modal-close2" style="flex-shrink:0">Cancel</button>
+      </div>`;
+  }
+  return `<div class="modal-overlay" id="modal-overlay"><div class="modal-box">${content}</div></div>`;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// PIN LOGIC
+// ═══════════════════════════════════════════════════════════════════════════
+let pinBuffer = '';
+function handlePin(key) {
+  if (key==='⌫') { pinBuffer=pinBuffer.slice(0,-1); }
+  else if (pinBuffer.length<4) { pinBuffer+=key; }
+  updatePinDots();
+  if (pinBuffer.length===4) {
+    setTimeout(()=>{
+      const match=state.kids.find(k=>k.pin===pinBuffer);
+      if (match) {
+        state.kidId=match.id; pinBuffer=''; state.tab='kidstock'; render();
+      } else {
+        pinBuffer='';
+        updatePinDots();
+        const err=document.getElementById('pin-err');
+        if(err){err.textContent='Wrong PIN — try again!';setTimeout(()=>{if(err)err.textContent='';},2000);}
+      }
+    },150);
+  }
+}
+function updatePinDots() {
+  for(let i=0;i<4;i++){const d=document.getElementById('pd'+i);if(d)d.className='pin-dot'+(i<pinBuffer.length?' filled':'');}
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// EVENT HANDLERS
+// ═══════════════════════════════════════════════════════════════════════════
+let qtyState = {}; // track qty per allocation
+
+function attachEvents() {
+  attachHeaderEvents();
+  attachNavEvents();
+  attachMainEvents();
+  attachModalEvents();
+}
+
+function attachHeaderEvents() {
+  const tog = document.getElementById('mode-toggle');
+  if (tog) tog.addEventListener('click', ()=>{
+    state.mode = state.mode==='biz'?'kid':'biz';
+    state.tab  = state.mode==='kid'?'kids':'dashboard';
+    state.kidId= null; pinBuffer='';
+    render();
+  });
+}
+
+function attachNavEvents() {
+  document.querySelectorAll('[data-tab]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{ state.tab=btn.dataset.tab; render(); });
+  });
+}
+
+function attachMainEvents() {
+  const s = document.getElementById('main-scroll');
+  if (!s) return;
+
+  // Settings save
+  const sBtn = document.getElementById('save-settings');
+  if (sBtn) sBtn.addEventListener('click', ()=>{
+    const keys=['elecRate','printerWatts','printerCost','printerLifetimeHrs','wastePct','labourRate','monthlyOverheads','itemsPerMonth','defaultMarkup','kidWholesalePct','vatRegistered','paymentFeePct'];
+    const ns={};
+    keys.forEach(k=>{ const el=document.getElementById('s-'+k); if(el) ns[k]=el.value; });
+    state.settings=ns; saveSettings(ns);
+    showSave('✅ Saved!'); render();
+  });
+
+  // Add buttons
+  const ab={
+    'add-stock':    ()=>openModal({type:'stock'}),
+    'add-product':  ()=>openModal({type:'product'}),
+    'add-order':    ()=>openModal({type:'order'}),
+    'add-kid':      ()=>openModal({type:'kid'}),
+    'add-inventory':()=>openModal({type:'inventory'}),
+    'add-alloc':    ()=>openModal({type:'alloc'}),
+    'logout-kid':   ()=>{ state.kidId=null; pinBuffer=''; render(); },
+  };
+  Object.entries(ab).forEach(([id,fn])=>{ const el=document.getElementById(id); if(el) el.addEventListener('click',fn); });
+
+  // Edit/delete via data attributes
+  s.addEventListener('click', async e=>{
+    const t=e.target.closest('[data-edit-stock],[data-del-stock],[data-edit-product],[data-del-product],[data-edit-order],[data-del-order],[data-toggle-order],[data-edit-kid],[data-del-kid],[data-del-alloc],[data-del-inv],[data-set-markup],[data-select-kid],[data-pin-key],[data-open-sale],[data-cancel-sale],[data-confirm-sale],[data-qty-plus],[data-qty-minus],[data-open-return],[data-cancel-return],[data-confirm-return]');
+    if (!t) return;
+    const d=t.dataset;
+
+    if(d.editStock)    { const item=state.stock.find(x=>x.id===d.editStock); openModal({type:'stock',data:{...item}}); }
+    if(d.delStock)     { openModal({type:'confirm',message:'Remove this filament?',onYes:async()=>{ await dbDelete('stock',d.delStock); state.stock=state.stock.filter(x=>x.id!==d.delStock); closeModal(); render(); }}); }
+    if(d.editProduct)  { const item=state.products.find(x=>x.id===d.editProduct); openModal({type:'product',data:{...item}}); }
+    if(d.delProduct)   { openModal({type:'confirm',message:'Remove this product?',onYes:async()=>{ await dbDelete('products',d.delProduct); state.products=state.products.filter(x=>x.id!==d.delProduct); closeModal(); render(); }}); }
+    if(d.editOrder)    { const item=state.orders.find(x=>x.id===d.editOrder); openModal({type:'order',data:{...item}}); }
+    if(d.delOrder)     { openModal({type:'confirm',message:'Delete this order?',onYes:async()=>{ await dbDelete('orders',d.delOrder); state.orders=state.orders.filter(x=>x.id!==d.delOrder); closeModal(); render(); }}); }
+    if(d.toggleOrder)  { const o=state.orders.find(x=>x.id===d.toggleOrder); if(o){ const upd={...o,status:o.status==='Completed'?'Pending':'Completed'}; await dbPut('orders',upd); state.orders=state.orders.map(x=>x.id===upd.id?upd:x); showSave(); render(); } }
+    if(d.editKid)      { const item=state.kids.find(x=>x.id===d.editKid); openModal({type:'kid',data:{...item}}); }
+    if(d.delKid)       { openModal({type:'confirm',message:"Remove this kid profile?",onYes:async()=>{ await dbDelete('kids',d.delKid); state.kids=state.kids.filter(x=>x.id!==d.delKid); closeModal(); render(); }}); }
+    if(d.delAlloc)     { openModal({type:'confirm',message:'Remove this allocation?',onYes:async()=>{ await dbDelete('allocations',d.delAlloc); state.allocations=state.allocations.filter(x=>x.id!==d.delAlloc); closeModal(); render(); }}); }
+    if(d.delInv)       { openModal({type:'confirm',message:'Remove this batch?',onYes:async()=>{ await dbDelete('inventory',d.delInv); state.inventory=state.inventory.filter(x=>x.id!==d.delInv); closeModal(); render(); }}); }
+    if(d.setMarkup)    { state._pricingMarkup=+d.setMarkup; render(); }
+    if(d.selectKid)    { state.kidId=d.selectKid; state.tab='kidstock'; render(); }
+    if(d.pinKey)       { handlePin(d.pinKey); }
+
+    // Kid stock sale flow
+    if(d.openSale)    { document.getElementById('sale-btn-'+d.openSale).style.display='none'; document.getElementById('sale-form-'+d.openSale).style.display='block'; qtyState[d.openSale]=1; updateProfitPreview(d.openSale); }
+    if(d.cancelSale)  { document.getElementById('sale-form-'+d.cancelSale).style.display='none'; document.getElementById('sale-btn-'+d.cancelSale).style.display='block'; }
+    if(d.qtyPlus)     { const max=+d.max||99; qtyState[d.qtyPlus]=Math.min(max,(qtyState[d.qtyPlus]||1)+1); document.getElementById('qty-val-'+d.qtyPlus).textContent=qtyState[d.qtyPlus]; updateProfitPreview(d.qtyPlus); }
+    if(d.qtyMinus)    { qtyState[d.qtyMinus]=Math.max(1,(qtyState[d.qtyMinus]||1)-1); document.getElementById('qty-val-'+d.qtyMinus).textContent=qtyState[d.qtyMinus]; updateProfitPreview(d.qtyMinus); }
+    if(d.confirmSale) {
+      const alloc=state.allocations.find(a=>a.id===d.confirmSale);
+      if(!alloc) return;
+      const qty=qtyState[d.confirmSale]||1;
+      const note=document.getElementById('sale-note-'+d.confirmSale)?.value||'';
+      const kid=state.kids.find(k=>k.id===state.kidId);
+      const row={id:uid(),allocationId:alloc.id,kidId:state.kidId,productId:alloc.productId,qty,priceEach:alloc.priceEach,wholesalePrice:alloc.wholesalePrice||0,date:new Date().toISOString().slice(0,10),note};
+      await dbPut('kid_sales',row);
+      state.kidSalesLog=[...state.kidSalesLog,row];
+      showSave('✅ Sale saved!'); render();
+    }
+    if(d.openReturn)   { document.getElementById('return-form-'+d.openReturn).style.display='block'; e.target.style.display='none'; }
+    if(d.cancelReturn) { document.getElementById('return-form-'+d.cancelReturn).style.display='none'; }
+    if(d.confirmReturn){
+      const alloc=state.allocations.find(a=>a.id===d.confirmReturn);
+      if(!alloc) return;
+      const rq=+document.getElementById('return-qty-'+d.confirmReturn)?.value||0;
+      const upd={...alloc,status:'Closed',returnedQty:rq};
+      await dbPut('allocations',upd);
+      state.allocations=state.allocations.map(a=>a.id===upd.id?upd:a);
+      showSave('✅ Closed out!'); render();
+    }
+  });
+
+  // Pricing sliders
+  const pmSlider = document.getElementById('pricing-markup');
+  if (pmSlider) pmSlider.addEventListener('input', e=>{ state._pricingMarkup=+e.target.value; render(); });
+  const pkSlider = document.getElementById('pricing-kidpct');
+  if (pkSlider) pkSlider.addEventListener('input', e=>{ state._pricingKidPct=+e.target.value; render(); });
+  const pprod = document.getElementById('pricing-product');
+  if (pprod) pprod.addEventListener('change', e=>{ state._pricingPid=e.target.value; render(); });
+
+  // Product modal live cost preview
+  ['p-filamentId','p-filamentG','p-printHrs','p-labourMins','p-consumables'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el) el.addEventListener('input', updateProductPreview);
+  });
+
+  // Order modal auto-fill price
+  const opid = document.getElementById('o-productId');
+  if (opid) opid.addEventListener('change', e=>{
+    const p=state.products.find(x=>x.id===e.target.value);
+    const c=calcCost(p);
+    const markup=1+Number(state.settings.defaultMarkup||150)/100;
+    const sp=document.getElementById('o-salePrice');
+    if(sp&&p) sp.value=Math.round(c.total*markup);
+    updateOrderSummary();
+  });
+  ['o-salePrice','o-qty'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el) el.addEventListener('input',updateOrderSummary);
+  });
+}
+
+function updateProfitPreview(allocId) {
+  const qty = qtyState[allocId]||1;
+  const pp  = document.getElementById('profit-prev-'+allocId);
+  if (!pp) return;
+  const price = +pp.dataset.price||0;
+  const ws    = +pp.dataset.wholesale||0;
+  const earn  = document.getElementById('pp-earn-'+allocId);
+  const pay   = document.getElementById('pp-pay-'+allocId);
+  const pft   = document.getElementById('pp-pft-'+allocId);
+  if (earn) earn.textContent = 'R'+(qty*price).toFixed(0);
+  if (pay)  pay.textContent  = 'R'+(qty*ws).toFixed(0);
+  if (pft)  pft.textContent  = 'R'+(qty*(price-ws)).toFixed(0);
+}
+
+function updateProductPreview() {
+  const fid = document.getElementById('p-filamentId')?.value;
+  const fg  = +document.getElementById('p-filamentG')?.value||0;
+  const ph  = +document.getElementById('p-printHrs')?.value||0;
+  const lm  = +document.getElementById('p-labourMins')?.value||15;
+  const con = +document.getElementById('p-consumables')?.value||3;
+  const c   = calcCost({filamentId:fid,filamentG:fg,printHrs:ph,labourMins:lm,consumables:con});
+  const prev = document.getElementById('modal-cost-preview');
+  if (!prev) return;
+  const markup=1+Number(state.settings.defaultMarkup||150)/100;
+  prev.innerHTML = fg>0 ? `<div class="card accent-cyan" style="font-size:12px">
+    <div style="font-weight:700;color:var(--cyan);margin-bottom:8px">LIVE COST PREVIEW</div>
+    ${[['🎞️ Filament+waste',c.filCost],['⚡ Electricity',c.elecCost],['🖨️ Depreciation',c.deprCost],['🔧 Labour',c.labourCost],['📦 Consumables',c.consumCost],['🏢 Overhead',c.overheadCost]].map(([l,v])=>`<div class="cost-row"><span style="color:var(--muted)">${l}</span><span>${R(v)}</span></div>`).join('')}
+    <div class="cost-total"><span>Total Cost</span><span>${R(c.total)}</span></div>
+    <div style="font-size:11px;color:var(--muted);margin-top:6px">Suggested sell (${markup.toFixed(1)}×): <strong style="color:var(--cyan)">${R(c.total*markup)}</strong></div>
+  </div>` : '';
+}
+
+function updateOrderSummary() {
+  const pid   = document.getElementById('o-productId')?.value;
+  const sp    = +document.getElementById('o-salePrice')?.value||0;
+  const qty   = +document.getElementById('o-qty')?.value||1;
+  const p     = state.products.find(x=>x.id===pid);
+  const c     = calcCost(p);
+  const el    = document.getElementById('o-order-summary');
+  if (!el||!p||!sp) return;
+  const rev   = sp*qty; const cogs=c.total*qty; const pft=rev-cogs;
+  el.innerHTML=`<div class="card accent-green" style="font-size:12px"><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;text-align:center">
+    <div><div style="font-weight:800;color:var(--amber)">${R(cogs)}</div><div style="color:var(--muted)">Cost</div></div>
+    <div><div style="font-weight:800;color:var(--green)">${R(rev)}</div><div style="color:var(--muted)">Revenue</div></div>
+    <div><div style="font-weight:800;color:${pft>=0?'var(--green)':'var(--red)'}">${R(pft)}</div><div style="color:var(--muted)">Profit</div></div>
+  </div></div>`;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// MODAL HELPERS
+// ═══════════════════════════════════════════════════════════════════════════
+function openModal(m) { state.modal=m; render(); }
+function closeModal()  { state.modal=null; render(); }
+function setModalErr(msg) { const el=document.getElementById('modal-err'); if(el) el.innerHTML=msg?`<div class="err">⚠️ ${msg}</div>`:''; }
+
+function attachModalEvents() {
+  document.getElementById('modal-close')?.addEventListener('click', closeModal);
+  document.getElementById('modal-close2')?.addEventListener('click', closeModal);
+  document.getElementById('modal-overlay')?.addEventListener('click', e=>{ if(e.target===e.currentTarget) closeModal(); });
+
+  const yesBtn = document.getElementById('modal-yes');
+  if (yesBtn && state.modal?.onYes) yesBtn.addEventListener('click', state.modal.onYes);
+  document.getElementById('modal-no')?.addEventListener('click', closeModal);
+
+  // Product preview on open
+  if (state.modal?.type==='product') { setTimeout(updateProductPreview, 50); }
+  if (state.modal?.type==='order')   { setTimeout(updateOrderSummary, 50); }
+
+  const saveBtn = document.getElementById('modal-save');
+  if (!saveBtn) return;
+  saveBtn.addEventListener('click', async()=>{
+    const m = state.modal;
+    if (!m) return;
+
+    if (m.type==='stock') {
+      const name=document.getElementById('f-name')?.value.trim();
+      const qty=+document.getElementById('f-qty')?.value;
+      const cpk=+document.getElementById('f-costPerKg')?.value;
+      if(!name){setModalErr('Enter filament name.');return;}
+      if(!qty){setModalErr('Enter quantity.');return;}
+      if(!cpk){setModalErr('Enter cost per kg.');return;}
+      const row={id:m.data?.id||uid(),name,supplier:document.getElementById('f-supplier')?.value.trim(),qty,costPerKg:cpk,colour:document.getElementById('f-colour')?.value,date:document.getElementById('f-date')?.value};
+      await dbPut('stock',row);
+      state.stock=state.stock.filter(x=>x.id!==row.id).concat(row);
+      showSave(); closeModal(); render();
+
+    } else if (m.type==='product') {
+      const name=document.getElementById('p-name')?.value.trim();
+      const fg=+document.getElementById('p-filamentG')?.value;
+      if(!name){setModalErr('Enter product name.');return;}
+      if(!fg){setModalErr('Enter filament used (g).');return;}
+      const row={id:m.data?.id||uid(),name,filamentId:document.getElementById('p-filamentId')?.value,filamentG:fg,printHrs:+document.getElementById('p-printHrs')?.value||0,labourMins:+document.getElementById('p-labourMins')?.value||15,consumables:+document.getElementById('p-consumables')?.value||3,notes:document.getElementById('p-notes')?.value.trim()};
+      await dbPut('products',row);
+      state.products=state.products.filter(x=>x.id!==row.id).concat(row);
+      showSave(); closeModal(); render();
+
+    } else if (m.type==='order') {
+      const cust=document.getElementById('o-customer')?.value.trim();
+      const pid=document.getElementById('o-productId')?.value;
+      const sp=+document.getElementById('o-salePrice')?.value;
+      if(!cust){setModalErr('Enter customer name.');return;}
+      if(!pid){setModalErr('Select a product.');return;}
+      if(!sp){setModalErr('Enter sale price.');return;}
+      const row={id:m.data?.id||uid(),customer:cust,productId:pid,qty:+document.getElementById('o-qty')?.value||1,salePrice:sp,date:document.getElementById('o-date')?.value,status:document.getElementById('o-status')?.value||'Pending',kidId:document.getElementById('o-kidId')?.value||null};
+      await dbPut('orders',row);
+      state.orders=state.orders.filter(x=>x.id!==row.id).concat(row);
+      showSave(); closeModal(); render();
+
+    } else if (m.type==='kid') {
+      const name=document.getElementById('k-name')?.value.trim();
+      const pin=document.getElementById('k-pin')?.value.trim();
+      if(!name){setModalErr("Enter kid's name.");return;}
+      if(!pin||pin.length!==4||!/^\d+$/.test(pin)){setModalErr('Enter a 4-digit PIN.');return;}
+      const AVATARS=['🦁','🐯','🦊','🐧','🦋','🐬','🦄','🐉'];
+      const row={id:m.data?.id||uid(),name,age:document.getElementById('k-age')?.value||'',goal:document.getElementById('k-goal')?.value.trim()||'',pin,avatar:m.data?.avatar||AVATARS[Math.floor(Math.random()*8)]};
+      await dbPut('kids',row);
+      state.kids=state.kids.filter(x=>x.id!==row.id).concat(row);
+      showSave(); closeModal(); render();
+
+    } else if (m.type==='inventory') {
+      const pid=document.getElementById('inv-productId')?.value;
+      const qty=+document.getElementById('inv-qty')?.value;
+      if(!pid){setModalErr('Select a product.');return;}
+      if(!qty){setModalErr('Enter quantity.');return;}
+      const row={id:uid(),productId:pid,qty,note:document.getElementById('inv-note')?.value.trim()||'',date:document.getElementById('inv-date')?.value};
+      await dbPut('inventory',row);
+      state.inventory=[...state.inventory,row];
+      showSave(); closeModal(); render();
+
+    } else if (m.type==='alloc') {
+      const kid=document.getElementById('al-kidId')?.value;
+      const pid=document.getElementById('al-productId')?.value;
+      const qty=+document.getElementById('al-qty')?.value;
+      const wp=+document.getElementById('al-wholesalePrice')?.value;
+      const pe=+document.getElementById('al-priceEach')?.value;
+      if(!kid){setModalErr('Select a kid.');return;}
+      if(!pid){setModalErr('Select a product.');return;}
+      if(!qty){setModalErr('Enter quantity.');return;}
+      if(!wp){setModalErr('Enter wholesale price.');return;}
+      if(!pe){setModalErr('Enter kid sell price.');return;}
+      const row={id:uid(),kidId:kid,productId:pid,qty,wholesalePrice:wp,priceEach:pe,marketDate:document.getElementById('al-marketDate')?.value,notes:document.getElementById('al-notes')?.value.trim()||'',status:'Active',returnedQty:0};
+      await dbPut('allocations',row);
+      state.allocations=[...state.allocations,row];
+      showSave(); closeModal(); render();
+    }
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// BOOT
+// ═══════════════════════════════════════════════════════════════════════════
+async function boot() {
+  await openDB();
+  const loads = await Promise.all(STORES.map(s=>dbGetAll(s)));
+  STORES.forEach((s,i)=>{
+    if(s==='stock')       state.stock=loads[i];
+    if(s==='products')    state.products=loads[i];
+    if(s==='orders')      state.orders=loads[i];
+    if(s==='kids')        state.kids=loads[i];
+    if(s==='allocations') state.allocations=loads[i];
+    if(s==='kid_sales')   state.kidSalesLog=loads[i];
+    if(s==='inventory')   state.inventory=loads[i];
+  });
+  state.settings=getSettings();
+  render();
+}
+
+boot();
+</script>
+</body>
+</html>
